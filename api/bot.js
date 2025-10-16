@@ -688,8 +688,10 @@ function orderLine(o){
   const d=o && o.delivery ? o.delivery : {};
   const name=[d.firstname||'', d.lastname||''].filter(Boolean).join(' ').trim();
   const addr=[d.address1||'', [d.postalCode||'', d.city||''].filter(Boolean).join(' '), d.country||''].filter(Boolean).join(', ') || '-';
+  const step = (o && o.status && o.status.step===2) || (o && o.validated_2of2) ? '2/2' : '1/2';
   return [
     '<b>'+o.id+'</b> • '+fmtDate(o.ts),
+    'Statut: Validée '+step,
     'Produits: '+items,
     'Paiement: '+(o.payment||'-'),
     'Total: '+fmtEUR((o.totals&&o.totals.cash)||0)+' (cash) • '+fmtEUR((o.totals&&o.totals.crypto)||0)+' (crypto)',

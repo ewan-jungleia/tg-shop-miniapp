@@ -83,6 +83,7 @@ module.exports = async (req, res) => {
     const safeUser = user ? { id: user.id, username: user.username||'' } : null;
     orders.push({
       id: orderId,
+      status:{ step:1 }, validated_1of2:true, validated_2of2:false,
       ts: Date.now(),
       user: safeUser,
       cart: cart || {},
@@ -119,7 +120,8 @@ function formatOrderText(cart, delivery, payment, orderId, sum) {
     `🧺 Panier:\n${items || '(vide)'}`,
     `💳 Paiement choisi: ${payment}`,
     `💰 Total: ${fmtEUR(sum.cash)} (cash) • ${fmtEUR(sum.crypto)} (crypto)`,
-    `🏠 Livraison:\n${addr}`
+    `Statut: Validée 1/2`,
+  `🏠 Livraison:\n${addr}`
   ].join('\n');
 }
 
