@@ -57,7 +57,7 @@ async function send(text, chat_id, inlineKb, plain=false){
   return BOT().post('/sendMessage',{ chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined });
 }
 function userHomeKb(){
-  const webappUrl=process.env.WEBAPP_URL;
+  const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
   return { keyboard:[ [{text:'Description'},{text:'FAQ'}], [{text:'🛍️ Ouvrir la boutique', web_app:{url:webappUrl}}] ], resize_keyboard:true };
 }
 async function sendHome(chatId){
