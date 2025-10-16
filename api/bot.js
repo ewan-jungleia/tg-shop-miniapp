@@ -58,7 +58,7 @@ async function send(text, chat_id, inlineKb, plain=false){
 }
 function userHomeKb(){
   const webappUrl=process.env.WEBAPP_URL;
-  return { keyboard:[ [{text:'Description'},{text:'FAQ'}], [{text:'Menu', web_app:{url:webappUrl}}] ], resize_keyboard:true };
+  return { keyboard:[ [{text:'Description'},{text:'FAQ'}], [{text:'🛍️ Ouvrir la boutique', web_app:{url:webappUrl}}] ], resize_keyboard:true };
 }
 async function sendHome(chatId){
   await BOT().post('/sendMessage',{ chat_id:chatId, text:'Bienvenue ! Choisis une option :', reply_markup: userHomeKb() });
@@ -483,12 +483,9 @@ async function onMessage(msg){
     await kv.set('settings', settings);
   }
 
-  if (['/start','FAQ','Description','Menu','/faq','/description','/menu'].includes(text)) {
+  if (['/start','FAQ','Description','🛍️ Ouvrir la boutique','Menu','/faq','/description','/menu'].includes(text)) {
     await adminSessionClear(fromId);
-    if (text==='/start' || text==='Menu' || text==='/menu') { await sendHome(chatId);
-      const webappUrl=process.env.WEBAPP_URL;
-      if (webappUrl){ const inlineKb = [[{ text:'🛍️ Ouvrir la boutique', web_app:{ url:webappUrl } }]]; await BOT().post('/sendMessage',{ chat_id:chatId, text:'Boutique :', reply_markup:{ inline_keyboard:inlineKb }}); }
-      return; }
+    if (text==='/start' || text==='Menu' || text==='/menu') { await sendHome(chatId); return; }
     if (text==='FAQ' || text==='/faq') { await send(settings.faq||'—', chatId); return; }
     if (text==='Description' || text==='/description') { await send(settings.description||'—', chatId); return; }
     return;
