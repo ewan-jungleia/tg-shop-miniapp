@@ -92,6 +92,21 @@ module.exports = async (req, res) => {
       totals: { cash: Number(sum.cash||0), crypto: Number(sum.crypto||0) }
     });
     await kv.set('orders_v2', orders);
+  // Mirror legacy key for Reports (compat)
+  try {
+    const legacy = (await kv.get('orders')) || [];
+    legacy.push({
+      id: orderId,
+      ts: Date.now(),
+      user: safeUser,
+      cart: cart || {},
+      delivery: delivery || {},
+      payment: payment || '',
+      totals: { cash: Number(sum.cash||0), crypto: Number(sum.crypto||0) }
+    });
+    await kv.set('orders', legacy);
+  } catch(_) {}
+
 
     res.setHeader('Content-Type', 'application/json');
     res.statusCode = 200;
