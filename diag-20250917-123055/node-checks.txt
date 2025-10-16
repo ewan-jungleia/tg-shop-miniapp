@@ -1,0 +1,6 @@
+== node -v ==
+v24.7.0
+== npm -v ==
+11.5.1
+== node -c api/bot.js ==
+OK

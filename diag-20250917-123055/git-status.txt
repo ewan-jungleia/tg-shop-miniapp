@@ -1,0 +1,12 @@
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	diag-20250917-123055/
+	diag.sh
+	dump-code-2025-09-16.zip
+	patch-neutral-1.1.5.json
+	patch-reset-neutral-1.1.5.json
+
+nothing added to commit but untracked files present (use "git add" to track)

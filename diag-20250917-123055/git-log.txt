@@ -1,0 +1,10 @@
+54e395f fix(patch): PREVIEW en texte brut (plain=true)
+c174b45 fix(patch): preview en texte brut (désactive parse_mode)
+5c68bed chore(patch): log HTTP error details in Telegram
+75d3a26 fix(patch): replace handlePatchDocument (safe find/replace)
+6dce0dc chore(diag): log update + ACK when receiving document
+97489fe fix(patch): traiter tout document envoyé par un admin (fallback)
+3d775b9 fix(patch): appliquer le patch + historique + session applied + upgrade optionnel
+25c2c52 fix(bot): clean onMessage (patch doc+text)
+78e8fa4 fix(adminSession): remove duplicate helpers
+cce773e fix(bot): remove stray \n after require('@vercel/kv')

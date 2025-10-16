@@ -1,0 +1,11 @@
+HTTP/2 200 
+age: 0
+cache-control: public, max-age=0, must-revalidate
+content-type: application/json
+date: Wed, 17 Sep 2025 10:30:57 GMT
+server: Vercel
+strict-transport-security: max-age=63072000; includeSubDomains; preload
+x-vercel-cache: MISS
+x-vercel-id: cdg1::iad1::pzgzj-1758105055953-3685f8d5c13b
+content-length: 510
+

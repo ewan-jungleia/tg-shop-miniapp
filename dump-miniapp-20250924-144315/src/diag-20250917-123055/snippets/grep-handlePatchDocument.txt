@@ -1,0 +1,4 @@
+430:      if (isAdmin(msg.from?.id, s)) { await handlePatchDocument(msg); return; }
+434:  if (msg && msg.document && (msg.caption||"").trim()==="/patch") { await handlePatchDocument(msg); return; }
+444:        await handlePatchDocument(msg);
+744:async function handlePatchDocument(msg){

@@ -1,0 +1,1 @@
+BASE=https://tg-miniapp-shop-template-black.vercel.app
