@@ -666,10 +666,45 @@ function adminReportsKb(){
     [{ text:'Retour',     callback_data:'admin:root' }]
   ];
 }
-function startOfToday(){const tz='Europe/Paris';const now=new Date();const local=new Date(now.toLocaleString('en-US',{timeZone:tz}));local.setHours(0,0,0,0);const offset=local.getTime()-new Date(local.toLocaleString('en-US',{timeZone:'UTC'})).getTime();return local.getTime()-offset;}
-function startOfWeek(){const tz='Europe/Paris';const now=new Date();const local=new Date(now.toLocaleString('en-US',{timeZone:tz}));const day=(local.getDay()+6)%7;local.setHours(0,0,0,0);local.setDate(local.getDate()-day);const offset=local.getTime()-new Date(local.toLocaleString('en-US',{timeZone:'UTC'})).getTime();return local.getTime()-offset;}
-function startOfMonth(){const tz='Europe/Paris';const now=new Date();const local=new Date(now.toLocaleString('en-US',{timeZone:tz}));local.setHours(0,0,0,0);local.setDate(1);const offset=local.getTime()-new Date(local.toLocaleString('en-US',{timeZone:'UTC'})).getTime();return local.getTime()-offset;}
-function startOfYear(){const tz='Europe/Paris';const now=new Date();const local=new Date(now.toLocaleString('en-US',{timeZone:tz}));local.setHours(0,0,0,0);local.setMonth(0,1);const offset=local.getTime()-new Date(local.toLocaleString('en-US',{timeZone:'UTC'})).getTime();return local.getTime()-offset;}
+
+function startOfToday(){
+  const fmt = new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'});
+  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p=>[p.type,p.value]));
+  // minuit Europe/Paris en UTC (epoch ms)
+  const y = parseInt(parts.year,10);
+  const m = parseInt(parts.month,10);
+  const d = parseInt(parts.day,10);
+  // construire un Date dans le TZ cible via string ISO locale puis obtenir le timestamp réel
+  const localMidnight = new Date(`${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}T00:00:00`);
+  return localMidnight.getTime();
+}
+function startOfWeek(){
+  const now = new Date();
+  const t0 = startOfToday();
+  const dow = (new Intl.DateTimeFormat('fr-FR',{weekday:'short', timeZone:'Europe/Paris'}).format(now).toLowerCase());
+  // Lundi=0 … Dimanche=6
+  const map = {lun:0, mar:1, mer:2, jeu:3, ven:4, sam:5, dim:6};
+  const k = Object.keys(map).find(k=>dow.startsWith(k)) || 'lun';
+  const delta = map[k];
+  return t0 - delta*24*3600*1000;
+}
+function startOfMonth(){
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit'});
+  const parts = Object.fromEntries(fmt.formatToParts(now).map(p=>[p.type,p.value]));
+  const y = parseInt(parts.year,10);
+  const m = parseInt(parts.month,10);
+  const local = new Date(`${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-01T00:00:00`);
+  return local.getTime();
+}
+function startOfYear(){
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric'});
+  const parts = Object.fromEntries(fmt.formatToParts(now).map(p=>[p.type,p.value]));
+  const y = parseInt(parts.year,10);
+  const local = new Date(`${y.toString().padStart(4,'0')}-01-01T00:00:00`);
+  return local.getTime();
+}
 function rangeTs(kind){
   if (kind==='today') return startOfToday();
   if (kind==='week')  return startOfWeek();
