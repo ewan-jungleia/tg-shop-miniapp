@@ -136,7 +136,7 @@ function formatOrderText(cart, delivery, payment, orderId, sum) {
     `💳 Paiement choisi: ${payment}`,
     `💰 Total: ${fmtEUR(sum.cash)} (cash) • ${fmtEUR(sum.crypto)} (crypto)`,
     `Statut: Validée 1/2`,
-  `🏠 Livraison:\n${addr}`
+  `ℹ️ Infos:\n${addr}`
   ].join('\n');
 }
 

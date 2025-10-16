@@ -668,7 +668,17 @@ function adminReportsKb(){
 }
 
 function startOfToday(){
-  const fmt = new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'});
+  // Calcule "minuit Europe/Paris" correct en epoch ms
+  const tz = 'Europe/Paris';
+  const now = new Date();
+  // nowParis est la date/heure PARIS matérialisée dans un objet Date local
+  const nowParis = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+  nowParis.setHours(0,0,0,0);
+  // Convertit ce "minuit Paris" en epoch réel : on retire l'écart Paris↔UTC
+  const asUTC = new Date(nowParis.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const offset = nowParis.getTime() - asUTC.getTime();
+  return nowParis.getTime() - offset;
+});
   const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p=>[p.type,p.value]));
   // minuit Europe/Paris en UTC (epoch ms)
   const y = parseInt(parts.year,10);
@@ -730,7 +740,7 @@ function orderLine(o){
     'Produits: '+items,
     'Paiement: '+(o.payment||'-'),
     'Total: '+fmtEUR((o.totals&&o.totals.cash)||0)+' (cash) • '+fmtEUR((o.totals&&o.totals.crypto)||0)+' (crypto)',
-    'Adresse: '+(name?name+', ':'')+addr
+    'Infos: '+(name?name+', ':'')+addr
   ].join('\n');
 }
 function aggregate(list){let cash=0, crypto=0, count=0;for(let i=0;i<list.length;i++){const o=list[i];if(!o) continue;count++;if(o.payment==="cash"){cash+=Number(o?.totals?.cash||0);}else if(o.payment==="crypto"){crypto+=Number(o?.totals?.crypto||0);}}return {cash,crypto,count};}
