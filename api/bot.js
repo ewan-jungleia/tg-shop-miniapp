@@ -60,7 +60,18 @@ function userHomeKb(){
   const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
   return { keyboard:[ [{text:'Description'},{text:'FAQ'}], [{text:'🛍️ Ouvrir la boutique', web_app:{url:webappUrl}}] ], resize_keyboard:true };
 }
+
+async function setWebAppMenuButton(chatId){
+  const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
+  try{
+    await BOT().post('/setChatMenuButton',{
+      chat_id: chatId,
+      menu_button: { type:'web_app', text:'🛍️ Ouvrir la boutique', web_app:{ url: webappUrl } }
+    });
+  }catch(_){}
+}
 async function sendHome(chatId){
+  await setWebAppMenuButton(chatId);
   await BOT().post('/sendMessage',{ chat_id:chatId, text:'Bienvenue ! Choisis une option :', reply_markup: userHomeKb() });
 }
 async function getFileUrl(fileId){
