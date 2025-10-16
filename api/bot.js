@@ -485,7 +485,10 @@ async function onMessage(msg){
 
   if (['/start','FAQ','Description','Menu','/faq','/description','/menu'].includes(text)) {
     await adminSessionClear(fromId);
-    if (text==='/start' || text==='Menu' || text==='/menu') { await sendHome(chatId); return; }
+    if (text==='/start' || text==='Menu' || text==='/menu') { await sendHome(chatId);
+      const webappUrl=process.env.WEBAPP_URL;
+      if (webappUrl){ const inlineKb = [[{ text:'🛍️ Ouvrir la boutique', web_app:{ url:webappUrl } }]]; await BOT().post('/sendMessage',{ chat_id:chatId, text:'Boutique :', reply_markup:{ inline_keyboard:inlineKb }}); }
+      return; }
     if (text==='FAQ' || text==='/faq') { await send(settings.faq||'—', chatId); return; }
     if (text==='Description' || text==='/description') { await send(settings.description||'—', chatId); return; }
     return;
