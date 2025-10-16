@@ -496,7 +496,7 @@ async function onMessage(msg){
 
   if (['/start','FAQ','Description','🛍️ Ouvrir la boutique','Menu','/faq','/description','/menu'].includes(text)) {
     await adminSessionClear(fromId);
-    if (text==='/start' || text==='Menu' || text==='/menu') { await sendHome(chatId); return; }
+    if (text==='/start' || text==='🛍️ Ouvrir la boutique' || text==='Menu' || text==='/menu') { await sendHome(chatId); return; }
     if (text==='FAQ' || text==='/faq') { await send(settings.faq||'—', chatId); return; }
     if (text==='Description' || text==='/description') { await send(settings.description||'—', chatId); return; }
     return;
