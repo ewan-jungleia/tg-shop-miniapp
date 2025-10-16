@@ -1,4 +1,15 @@
-const { kv } = require('@vercel/kv');
-async function getJSON(key, fallback){ const raw = await kv.get(key); if(raw==null) return fallback; try{ return typeof raw==='string'? JSON.parse(raw): raw; }catch{ return fallback; } }
-async function setJSON(key, value){ return kv.set(key, JSON.stringify(value)); }
-module.exports = { kv, getJSON, setJSON };
+/**
+ * KV wrapper tolérant : si @vercel/kv n'est pas dispo/configuré,
+ * on expose une interface no-op pour éviter un crash 500 sur les lambdas.
+ */
+let kvImpl = null;
+try {
+  kvImpl = require('@vercel/kv').kv;
+} catch (_) {
+  kvImpl = {
+    async get() { return null; },
+    async set() { /* no-op */ },
+    async del() { /* no-op */ },
+  };
+}
+module.exports = { kv: kvImpl };
