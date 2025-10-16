@@ -177,7 +177,7 @@ async function onCallbackQuery(cbq){
   if (!settings){ settings={admins:[String(userId)]}; await kv.set('settings', settings); }
   if (!isAdmin(userId, settings)) { await send('Accès admin requis.', chatId, null, true); return; }
 
-  // Root & catégories
+  // Home inline actions\n  if (data==='home:desc'){ const st=(await kv.get('settings'))||{}; await send(st.description||'Aucune description.', chatId); return; }\n  if (data==='home:faq'){ const st=(await kv.get('settings'))||{}; await send(st.faq||'Pas de FAQ.', chatId); return; }\n\n  // Root & catégories
   if (data==='admin:root'){ await send('Panneau admin :', chatId, adminRootKb()); return; }
   if (data==='admin:cat_products'){ await send('Produits :', chatId, adminProductsKb()); return; }
   if (data==='admin:cat_texts'){ await send('Textes :', chatId, adminTextsKb()); return; }
