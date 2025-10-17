@@ -1,3 +1,12 @@
+function __fmtStockDisplay(st){
+  try{
+    if(st==null) return 'illimité';
+    const raw=String(st).trim();
+    if(!raw || raw==='∞' || /^illimit/i.test(raw)) return 'illimité';
+    const n=parseInt(raw,10);
+    return Number.isFinite(n)?String(n):raw;
+  }catch(_){ return 'illimité'; }
+}
 // api/bot.js
 const axios = require('axios');
 const { kv } = require('./_kv');
@@ -54,7 +63,7 @@ async function readJson(req) {
 }
 function isAdmin(userId, settings) { const list=settings?.admins||[]; return list.includes(String(userId)); }
 async function send(text, chat_id, inlineKb, plain=false){
-  return BOT().post('/sendMessage',{ chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined });
+  return BOT().post('/sendMessage', { chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined });
 }
 function userHomeKb(){
   const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
@@ -72,7 +81,7 @@ async function setWebAppMenuButton(chatId){
 }
 async function sendHome(chatId){
   await setWebAppMenuButton(chatId);
-  await BOT().post('/sendMessage',{ chat_id:chatId, text:'Bienvenue ! Choisis une option :', reply_markup: userHomeKb() });
+  await BOT().post('/sendMessage', { chat_id:chatId, parse_mode:'HTML',parse_mode:'HTML',  text:'Bienvenue ! Choisis une option :', reply_markup: userHomeKb() });
 }
 async function getFileUrl(fileId){
   const r=await BOT().get('/getFile',{ params:{ file_id:fileId }});
