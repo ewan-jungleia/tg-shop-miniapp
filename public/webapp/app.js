@@ -39,7 +39,15 @@ async function init() {
 
 function setupTabs() {
   document.querySelectorAll('.tabs button').forEach(btn=>{
-    btn.onclick = ()=>{
+    btn.onclick = ()=> {
+      const variantSel = document.getElementById('variant-' + p.id);
+      const variantIdx = variantSel ? parseInt(variantSel.value,10) : 0;
+      const variant = (Array.isArray(p.variants) ? p.variants[variantIdx] : null);
+      const unit = variant?.unit || p.unit || 'standard';
+      const price_cash = variant?.price_cash || p.price_cash;
+      const price_crypto = variant?.price_crypto || p.price_crypto;
+      const selected = Object.assign({}, p, {unit, price_cash, price_crypto});
+      
       document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -118,7 +126,8 @@ function renderCatalog() {
       const p = state.products.find(x=>x.id===id);
       const input = root.querySelector(`input.qtyInput[data-id="${id}"]`);
       const qty = Math.max(1, parseInt(input.value,10) || 1);
-      addToCart(p, qty);
+      
+      addToCart(selected, qty);
       openCart('cart');
     };
   });
