@@ -170,10 +170,15 @@ function renderCatalog() {
 
     const addBtn = card.querySelector(`button[data-add="${p.id}"]`);
     addBtn.onclick = ()=>{
-      const qty = clamp(input.value);
-      addToCart(p, qty, numericStock, isUnlimited);
-      openCart('cart');
-    };
+  const qty = clamp(input.value);
+  const sel = {
+    label: card.dataset.selLabel,
+    cash: Number(card.dataset.selCash ?? p.price_cash ?? 0),
+    crypto: Number(card.dataset.selCrypto ?? p.price_crypto ?? 0)
+  };
+  addToCart(p, qty, numericStock, isUnlimited, sel);
+  openCart('cart');
+};
   });
 }
 
@@ -185,7 +190,7 @@ function mediaEl(m) {
 }
 
 /* — Cart helpers — */
-function addToCart(p, qty, numericStock, isUnlimited) {
+function addToCart(p, qty, numericStock, isUnlimited, sel){
   const existing = state.cart.items.find(x=>x.id===p.id);
   let newQty = qty;
   if (!isUnlimited) {
@@ -195,13 +200,13 @@ function addToCart(p, qty, numericStock, isUnlimited) {
   }
   if (existing) existing.qty += newQty;
   else state.cart.items.push({
-    id: p.id,
-    name: p.name,
-    unit: (card.dataset.selLabel || p.unit),
-    qty: newQty,
-    price_cash: Number(card.dataset.selCash ?? p.price_cash ?? 0),
-    price_crypto: Number(card.dataset.selCrypto ?? p.price_crypto ?? 0)
-  });
+  id: p.id,
+  name: p.name,
+  unit: (sel?.label || p.unit),
+  qty: newQty,
+  price_cash: Number((sel?.cash ?? p.price_cash) || 0),
+  price_crypto: Number((sel?.crypto ?? p.price_crypto) || 0)
+});
   persistCart();
   renderCartItems();
   updateCartBadge();
