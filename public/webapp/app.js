@@ -24,7 +24,7 @@ async function init() {
   if (state.settings.bgUrl) { document.getElementById('app').style.backgroundImage = `url('${state.settings.bgUrl}')`; }
 
   setupTabs();
-  renderCatalog();
+  renderCatalog(); setTimeout(window.__applyVariantsSafe,0);
   __hideBaseStockLine();
 renderDescFaqContact();
   hookupCartModal();
@@ -128,65 +128,37 @@ function renderCatalog() {
     `;
     root.appendChild(card);
     /* VARIANT LOGIC START */
-
-  function buildVariantUI(card,p){
+window.__applyVariantsSafe = function(){
+  try{
+    if(!window.state||!state.products) return;
+    const cat=document.getElementById('catalog'); if(!cat) return;
     const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};
-    const holder = card.querySelector('.variantHolder') || card;
-    holder.querySelectorAll('.variantSelect,.variantList').forEach(el=>el.remove());
-    const list=document.createElement('div');
-    list.className='variantList';
-    (p.variants||[]).forEach((v,idx)=>{
-      const row=document.createElement('button');
-      row.type='button';
-      row.className='variantRow';
-      row.dataset.label=(v.label||'').trim();
-      row.dataset.price_cash=Number(v.price_cash||0);
-      row.dataset.price_crypto=Number(v.price_crypto||0);
-      row.dataset.stock=(v.stock==null || String(v.stock).trim()==='' ? '∞' : String(v.stock).trim());
-      const priceBits=[];
-      if(pm.cash)   priceBits.push('Cash: '+fmtEUR(Number(v.price_cash||0)));
-      if(pm.crypto) priceBits.push('Crypto: '+fmtEUR(Number(v.price_crypto||0)));
-      row.innerHTML = `
-        <span class="vLabel">${row.dataset.label}</span>
-        <span class="vPrices">${priceBits.join('  |  ')}</span>
-        <span class="vStock">${row.dataset.stock==='∞'?'illimité':row.dataset.stock}</span>`;
-      row.addEventListener('click',()=>{
-        list.querySelectorAll('.variantRow').forEach(r=>r.classList.remove('active'));
-        row.classList.add('active');
-        card.dataset.selLabel = row.dataset.label;
-        card.dataset.selCash  = row.dataset.price_cash;
-        card.dataset.selCrypto= row.dataset.price_crypto;
-        card.dataset.selStock = row.dataset.stock;
-        const priceRow=card.querySelector('.priceRow');
-        if(priceRow){
-          const bits=[];
-          if(pm.cash)   bits.push('Prix cash : '+fmtEUR(Number(card.dataset.selCash||p.price_cash||0)));
-          if(pm.crypto) bits.push('Prix crypto : '+fmtEUR(Number(card.dataset.selCrypto||p.price_crypto||0)));
-          priceRow.textContent = bits.join('   ');
-        }
-        const sv=card.querySelector('.stockVariant');
-        if(sv){ sv.textContent='<span class="stockVariant">Stock (variante) : '+(card.dataset.selStock==='∞'?'illimité':card.dataset.selStock); }
+    const fmtEUR=(n)=> (new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'})).format(Number(n||0));
+    cat.querySelectorAll('.product-card').forEach(card=>{
+      const p=card.__productData; if(!p||!Array.isArray(p.variants)||!p.variants.length) return;
+      card.querySelectorAll('.variantList').forEach(el=>el.remove());
+      const list=document.createElement('div'); list.className='variantList';
+      (p.variants||[]).forEach((v,idx)=>{
+        const row=document.createElement('button'); row.type='button'; row.className='variantRow';
+        const label=String(v.label||'').trim();
+        const pc=Number(v.price_cash||0), pr=Number(v.price_crypto||0);
+        const st=(v.stock==null||String(v.stock).trim()==='')?'∞':String(v.stock).trim();
+        row.dataset.label=label; row.dataset.price_cash=pc; row.dataset.price_crypto=pr; row.dataset.stock=st;
+        const priceBits=[]; if(pm.cash) priceBits.push('Cash: '+fmtEUR(pc)); if(pm.crypto) priceBits.push('Crypto: '+fmtEUR(pr));
+        row.innerHTML=`<span class="vLabel">${label}</span><span class="vPrices">${priceBits.join(' | ')}</span><span class="vStock">${st==='∞'?'illimité':st}</span>`;
+        row.onclick=()=>{ list.querySelectorAll('.variantRow').forEach(r=>r.classList.remove('active')); row.classList.add('active');
+          card.dataset.selLabel=label; card.dataset.selCash=pc; card.dataset.selCrypto=pr; card.dataset.selStock=st;
+          const priceRow=card.querySelector('.priceRow'); if(priceRow){ const bits=[]; if(pm.cash) bits.push('Prix cash : '+fmtEUR(pc)); if(pm.crypto) bits.push('Prix crypto : '+fmtEUR(pr)); priceRow.textContent=bits.join('   '); }
+          const sv=card.querySelector('.stockVariant'); if(sv){ sv.textContent='Stock (variante) : '+(st==='∞'?'illimité':st); }
+        };
+        list.appendChild(row); if(idx===0) setTimeout(()=>row.click(),0);
       });
-      list.appendChild(row);
-      if(idx===0) setTimeout(()=>row.click(),0);
+      const qtyRow=card.querySelector('.qtyRow')||card;
+      qtyRow.parentNode.insertBefore(list, qtyRow);
     });
-    const qtyBlock = card.querySelector('.qtyRow') || card;
-    qtyBlock.parentNode.insertBefore(list, qtyBlock);
-  }
-
-  (function(){
-    const cat=document.getElementById('catalog');
-    if(!cat) return;
-    const cards=cat.querySelectorAll('.product-card');
-    cards.forEach(card=>{
-      const pd = card.__productData;
-      if(pd && Array.isArray(pd.variants) && pd.variants.length){
-        buildVariantUI(card, pd);
-      }
-    });
-  })();
-
-  /* VARIANT LOGIC END */
+  }catch(e){ console.error('variants safe error',e); }
+};
+/* VARIANT LOGIC END */
 
 
     const input = card.querySelector(`input.qtyInput[data-id="${p.id}"]`);
