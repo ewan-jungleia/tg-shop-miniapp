@@ -90,7 +90,7 @@ function renderCatalog() {
   const root = document.getElementById('catalog');
   root.innerHTML = '';
   state.products.forEach(p=>{
-    const card = document.createElement('div'); card.className='card';
+    const card = document.createElement('div'); card.className='card product-card'; card.__productData = p;
 
     if (Array.isArray(p.media) && p.media.length){
       const gal = document.createElement('div'); gal.className='gallery';
@@ -197,7 +197,7 @@ function addToCart(p, qty, numericStock, isUnlimited) {
   if (!isUnlimited) {
     const already = existing ? Number(existing.qty||0) : 0;
     newQty = Math.min(qty, Math.max(0, numericStock - already));
-    if (newQty</span><=0) { alert('Stock insuffisant'); return; }
+    if (newQty<=0) { alert('Stock insuffisant'); return; }
   }
   if (existing) existing.qty += newQty;
   else state.cart.items.push({
