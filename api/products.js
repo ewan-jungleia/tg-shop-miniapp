@@ -16,18 +16,16 @@ module.exports = async (req, res) => {
       requiredChannel: "",
       channels: [],
       admins: [],
-      deliveryForm: {
-        fields: { firstname:true, lastname:true, address1:true, postalCode:true, city:true, country:true }
-      }
+      paymentMethods: { cash: true, crypto: true },
+      deliveryForm: { fields: { firstname:true, lastname:true, address1:true, postalCode:true, city:true, country:true } }
     };
 
     let settings = await kv.get('settings');
     if (!settings) { settings = defaults; await kv.set('settings', settings); }
     else {
       settings = { ...defaults, ...settings };
-      settings.deliveryForm = {
-        fields: { ...defaults.deliveryForm.fields, ...(settings.deliveryForm?.fields||{}) }
-      };
+      settings.deliveryForm = { fields: { ...defaults.deliveryForm.fields, ...(settings.deliveryForm?.fields||{}) } };
+      settings.paymentMethods = { ...defaults.paymentMethods, ...(settings.paymentMethods||{}) };
       await kv.set('settings', settings);
     }
 
