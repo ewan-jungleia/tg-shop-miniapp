@@ -25,7 +25,8 @@ async function init() {
 
   setupTabs();
   renderCatalog();
-  renderDescFaqContact();
+  __hideBaseStockLine();
+renderDescFaqContact();
   hookupCartModal();
   applyDeliveryFieldsVisibility();
   updateCartBadge();
@@ -55,6 +56,20 @@ function renderDescFaqContact() {
 }
 
 /* — Catalog — */
+function __hideBaseStockLine(){
+  try{
+    const scan=()=>document.querySelectorAll('#catalog *').forEach(el=>{
+      if(!el || !el.textContent) return;
+      const t=el.textContent.trim();
+      if(/^Stock\s*:/i.test(t) && !/\(variante\)/i.test(t)) el.style.display='none';
+    });
+    scan();
+    const mo=new MutationObserver(scan);
+    mo.observe(document.getElementById('catalog')||document.body,{childList:true,subtree:true});
+  }catch(_){}
+}
+
+
 function renderCatalog() {
   const root = document.getElementById('catalog');
   root.innerHTML = '';
