@@ -103,6 +103,29 @@ function renderCatalog() {
           // Crée un select des variantes
           const sel = document.createElement('select');
           sel.className='variantSelect';
+     try{
+       (function decorateVariantOptions(){
+         const pm=(window.state&&window.state.settings&&window.state.settings.paymentMethods)||{cash:true,crypto:true};
+         const fmtE=(n)=> (Number(n)||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+         const opts = sel.querySelectorAll('option');
+         for(let i=0;i<opts.length;i++){
+           const v=variants[i]; if(!v) continue;
+           const parts=[String(v.label||'').trim()];
+           const priceBits=[];
+           if(pm.cash)   priceBits.push('Cash: '+fmtE(v.price_cash));
+           if(pm.crypto) priceBits.push('Crypto: '+fmtE(v.price_crypto));
+           if(priceBits.length) parts.push(priceBits.join(' | '));
+           const raw = (v.stock==null || String(v.stock).trim()==='' || String(v.stock).trim()==='∞') ? 'illimité' : String(v.stock).trim();
+           parts.push('Stock: '+raw);
+           opts[i].textContent = parts.join(' — ');
+         }
+       })();
+       /* masque “Stock : …” (base produit) s’il traîne dans la carte */
+       document.querySelectorAll('#catalog *').forEach(el=>{
+         const t = (el.textContent||'').trim();
+         if (/^Stocks*:/.test(t) && !/variante/i.test(t)) { el.style.display='none'; }
+       });
+     }catch(e){ console.error('variant option decorate error', e); }
           p.variants.forEach((v,i)=>{
             const opt=document.createElement('option');
             opt.value=String(i);
