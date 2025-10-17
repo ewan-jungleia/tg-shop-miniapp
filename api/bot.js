@@ -9,7 +9,7 @@ function __fmtStockDisplay(st){
 }
 // api/bot.js
 const axios = require('axios');
-const { kv } = require('@vercel/kv');
+const { kv } = require('./_kv');
 // --- admin session (KV) ---
 const ADMIN_SESS_PREFIX = 'admin:sess:';
 async function adminSessionGet(uid){ try{ return (await kv.get(ADMIN_SESS_PREFIX+uid)) || null; }catch(_){ return null; } }
@@ -38,7 +38,7 @@ const BOT = () => {
   return axios.create({ baseURL: `https://api.telegram.org/bot${token}` });
 };
 
-module.exports = async (req, res) => {
+const __SAFE_WRAP_BOT = async (req, res) => { try {
   try {
     if (req.method !== 'POST') { res.statusCode = 405; return res.end('Method Not Allowed'); }
     const secretHeader = req.headers['x-telegram-bot-api-secret-token'];
