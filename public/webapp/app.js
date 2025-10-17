@@ -70,6 +70,22 @@ function __hideBaseStockLine(){
 }
 
 
+function __fixQtyLabel(){
+  try{
+    const scan = ()=>{
+      (document.querySelectorAll('#catalog *')||[]).forEach(el=>{
+        if(!el || !el.textContent) return;
+        const txt = el.textContent.trim();
+        if(/^Qté\s*\(/i.test(txt)) { el.textContent = 'Qté'; }
+      });
+    };
+    scan();
+    const mo = new MutationObserver(scan);
+    mo.observe(document.getElementById('catalog')||document.body,{childList:true,subtree:true});
+  }catch(_){}
+}
+
+
 function renderCatalog() {
   const root = document.getElementById('catalog');
   root.innerHTML = '';
