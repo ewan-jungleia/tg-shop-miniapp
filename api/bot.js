@@ -5,6 +5,17 @@ const axios = require('axios');
 const { kv } = require('@vercel/kv');
 // --- admin session (KV) ---
 const ADMIN_SESS_PREFIX = 'admin:sess:';
+// Affichage stock pour l'admin (/lister)
+function fmtStockDisplay(st){
+  if (st == null) return 'illimité';
+  const raw = String(st).trim();
+  if (!raw) return 'illimité';
+  if (raw === '∞' || /^illimit/i.test(raw)) return 'illimité';
+  const n = parseInt(raw,10);
+  return Number.isFinite(n) ? String(n) : raw;
+}
+
+
 async function adminSessionGet(uid){ try{ return (await kv.get(ADMIN_SESS_PREFIX+uid)) || null; }catch(_){ return null; } }
 async function adminSessionSet(uid, obj){ try{ await kv.set(ADMIN_SESS_PREFIX+uid, obj); }catch(_){ } }
 async function adminSessionClear(uid){ try{ await kv.del(ADMIN_SESS_PREFIX+uid); }catch(_){ } }
@@ -249,7 +260,7 @@ async function onCallbackQuery(cbq){
     if (!products.length){ await send('Aucun produit.', chatId, adminProductsKb()); return; }
     const blocks=products.map(p=>{
       const mediaCount=(p.media||[]).length;
-      return `• <b>${p.name}</b> (${p.id})\n  Unité: ${p.unit||'-'} | Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €\n  Médias: ${mediaCount}\n  Desc: ${p.description||'-'}`;
+      return `• <b>${p.name}</b> (${p.id})\n  Unité: ${p.unit||'-'} | Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €\n  Médias: ${mediaCount}\n  Desc: ${p.description||'-'}`; | Stock: ${fmtStockDisplay(p.stock)}
     }).join('\n\n');
     await send(`<b>Produits actifs</b>\n\n${blocks}`, chatId, adminProductsKb()); return;
   }
