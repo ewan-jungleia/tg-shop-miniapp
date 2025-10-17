@@ -668,25 +668,17 @@ function adminReportsKb(){
 }
 
 function startOfToday(){
-  // Calcule "minuit Europe/Paris" correct en epoch ms
-  const tz = 'Europe/Paris';
-  const now = new Date();
-  // nowParis est la date/heure PARIS matérialisée dans un objet Date local
-  const nowParis = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  nowParis.setHours(0,0,0,0);
-  // Convertit ce "minuit Paris" en epoch réel : on retire l'écart Paris↔UTC
-  const asUTC = new Date(nowParis.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const offset = nowParis.getTime() - asUTC.getTime();
-  return nowParis.getTime() - offset;
-});
-  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p=>[p.type,p.value]));
-  // minuit Europe/Paris en UTC (epoch ms)
-  const y = parseInt(parts.year,10);
-  const m = parseInt(parts.month,10);
-  const d = parseInt(parts.day,10);
-  // construire un Date dans le TZ cible via string ISO locale puis obtenir le timestamp réel
-  const localMidnight = new Date(`${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}T00:00:00`);
-  return localMidnight.getTime();
+  try{
+    const tz = 'Europe/Paris';
+    const now = new Date();
+    const y = new Intl.DateTimeFormat('fr-FR',{timeZone:tz,year:'numeric'}).format(now);
+    const m = new Intl.DateTimeFormat('fr-FR',{timeZone:tz,month:'2-digit'}).format(now);
+    const d = new Intl.DateTimeFormat('fr-FR',{timeZone:tz,day:'2-digit'}).format(now);
+    // construit minuit local Paris en objet Date (epoch en ms)
+    return new Date(`${y}-${m}-${d}T00:00:00`).getTime();
+  }catch(_){
+    const n = new Date(); n.setHours(0,0,0,0); return n.getTime();
+  }
 }
 function startOfWeek(){
   const now = new Date();
