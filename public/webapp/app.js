@@ -118,7 +118,7 @@ function renderCatalog() {
         </div>
         <div class="row" style="margin-left:auto; gap:16px;">
           <div>Prix cash : ${fmtEUR(p.price_cash)}</div>
-          <div>Prix crypto : ${fmtEUR(p.price_crypto)}</div>
+          <div>${(()=>{const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};const bits=[];if(pm.cash)bits.push("Prix cash : "+fmtEUR(p.price_cash));if(pm.crypto)bits.push("Prix crypto : "+fmtEUR(p.price_crypto));return bits.join("   ");})()}</div>
         </div>
       </div>
       <div class="row" style="font-size:12px; color:#9aa3b2;">
@@ -464,3 +464,19 @@ function renderVariantTable(product){
     wrap.innerHTML=html;
   }catch(e){console.error('variantTable',e);}
 }
+
+function applyPaymentVisibility(){
+  try{
+    const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};
+    const cash=document.querySelector('label.payment-option input[value="cash"]')?.closest('label');
+    const crypto=document.querySelector('label.payment-option input[value="crypto"]')?.closest('label');
+    if(cash)   cash.style.display   = pm.cash   ? '' : 'none';
+    if(crypto) crypto.style.display = pm.crypto ? '' : 'none';
+    const firstOn = pm.cash ? 'cash' : (pm.crypto ? 'crypto' : null);
+    if(firstOn){
+      const rb=document.querySelector('input[name="pay"][value="'+firstOn+'"]');
+      if(rb) rb.checked=true;
+    }
+  }catch(_){}
+}
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',applyPaymentVisibility):applyPaymentVisibility();
