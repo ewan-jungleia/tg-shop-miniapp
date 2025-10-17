@@ -1,21 +1,17 @@
-process.on("uncaughtException",e=>{console.error("⚠️ Uncaught:",e?.message||e);});
-process.on("unhandledRejection",e=>{console.error("⚠️ Unhandled:",e?.message||e);});
+
+function fmtStockDisplay(st){
+  if(st==null) return 'illimité';
+  const raw=String(st).trim();
+  if(!raw || raw==='∞' || /^illimit/i.test(raw)) return 'illimité';
+  const n=parseInt(raw,10);
+  return Number.isFinite(n)?String(n):raw;
+}
+
 // api/bot.js
 const axios = require('axios');
 const { kv } = require('@vercel/kv');
 // --- admin session (KV) ---
 const ADMIN_SESS_PREFIX = 'admin:sess:';
-// Affichage stock pour l'admin (/lister)
-function fmtStockDisplay(st){
-  if (st == null) return 'illimité';
-  const raw = String(st).trim();
-  if (!raw) return 'illimité';
-  if (raw === '∞' || /^illimit/i.test(raw)) return 'illimité';
-  const n = parseInt(raw,10);
-  return Number.isFinite(n) ? String(n) : raw;
-}
-
-
 async function adminSessionGet(uid){ try{ return (await kv.get(ADMIN_SESS_PREFIX+uid)) || null; }catch(_){ return null; } }
 async function adminSessionSet(uid, obj){ try{ await kv.set(ADMIN_SESS_PREFIX+uid, obj); }catch(_){ } }
 async function adminSessionClear(uid){ try{ await kv.del(ADMIN_SESS_PREFIX+uid); }catch(_){ } }
@@ -67,13 +63,7 @@ async function readJson(req) {
 }
 function isAdmin(userId, settings) { const list=settings?.admins||[]; return list.includes(String(userId)); }
 async function send(text, chat_id, inlineKb, plain=false){
-  return BOT().post('/sendMessage', {
-    chat_id,
-    text,
-    parse_mode: plain ? undefined : 'HTML',
-    disable_web_page_preview: true,
-    reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined
-  });
+  return BOT().post('/sendMessage',{ chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined });
 }
 function userHomeKb(){
   const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
@@ -150,7 +140,7 @@ function adminFormKb(fields){
   const f=fields||{};
   return [
     [{ text:`Prénom: ${f.firstname?'✅':'❌'}`, callback_data:'admin:form_toggle:firstname' }, { text:`Nom: ${f.lastname?'✅':'❌'}`, callback_data:'admin:form_toggle:lastname' }],
-    [{ text:`Infos: ${f.address1?'✅':'❌'}`, callback_data:'admin:form_toggle:address1' }],
+    [{ text:`Adresse: ${f.address1?'✅':'❌'}`, callback_data:'admin:form_toggle:address1' }],
     [{ text:`CP: ${f.postalCode?'✅':'❌'}`, callback_data:'admin:form_toggle:postalCode' }, { text:`Ville: ${f.city?'✅':'❌'}`, callback_data:'admin:form_toggle:city' }],
     [{ text:`Pays: ${f.country?'✅':'❌'}`, callback_data:'admin:form_toggle:country' }],
     [{ text:'🔁 Réinitialiser', callback_data:'admin:form_reset' }],
@@ -281,7 +271,7 @@ async function onCallbackQuery(cbq){
       await send('Envoie des <b>photos/vidéos</b>.\nTu peux vider d’abord les médias existants avec 🧹 puis ajouter.\nQuand c’est bon : ➡️ Terminer.', chatId, kbMedia());
     } else {
       sess.step='field_val'; sess.payload.field=field; await adminSessionSet(userId, sess);
-      const labelMap={name:'Nom',description:'Description',unit:'Unité',price_cash:'Prix cash (€)',price_crypto:'Prix crypto (€)',stock:'Stock (nombre ou "illimité")'};
+      const labelMap={name:'Nom',description:'Description',unit:'Unité',price_cash:'Prix cash (€)',price_crypto:'Prix crypto (€)'};
       await send(`${labelMap[field]||field} ?`, chatId, kbConfirm());
     }
     return;
@@ -572,7 +562,6 @@ async function handleAdminFlowStep(msg, sess){
         [{text:'Nom', callback_data:'admin:edit_field:name'}, {text:'Description', callback_data:'admin:edit_field:description'}],
         [{text:'Unité', callback_data:'admin:edit_field:unit'}],
         [{text:'Prix cash', callback_data:'admin:edit_field:price_cash'}, {text:'Prix crypto', callback_data:'admin:edit_field:price_crypto'}],
-        [{text:'Stock', callback_data:'admin:edit_field:stock'}],
         [{text:'Médias', callback_data:'admin:edit_field:media'}],
         [{text:'Annuler', callback_data:'cancel'}]
       ];
@@ -586,19 +575,8 @@ async function handleAdminFlowStep(msg, sess){
       const field = sess.payload.field;
       const val = msg.text.trim();
       const p = products[idx];
-      if (field==='price_cash' || field==='price_crypto'){
-          p[field] = Number(val.replace(',','.'))||0;
-        } else if (field==='stock'){
-          const t = val.trim().toLowerCase();
-          if (t==='∞' || t.includes('illimit') || t==='infinite' || t==='unlimited'){
-            p.stock = '∞';
-          } else {
-            const n = Math.max(0, parseInt(val,10) || 0);
-            p.stock = n;
-          }
-        } else {
-          p[field] = val;
-        }
+      if (field==='price_cash' || field==='price_crypto'){ p[field] = Number(val.replace(',','.'))||0; }
+      else { p[field] = val; }
       products[idx]=p; await kv.set('products', products);
       await adminSessionClear(userId); await send('✅ Produit modifié.', chatId, adminProductsKb()); return;
     }
@@ -699,18 +677,26 @@ function adminReportsKb(){
 }
 
 function startOfToday(){
-  // Calcule "minuit Europe/Paris" (epoch ms)
+  // Calcule "minuit Europe/Paris" correct en epoch ms
   const tz = 'Europe/Paris';
-  const fmt = new Intl.DateTimeFormat('fr-FR', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
-  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
+  const now = new Date();
+  // nowParis est la date/heure PARIS matérialisée dans un objet Date local
+  const nowParis = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+  nowParis.setHours(0,0,0,0);
+  // Convertit ce "minuit Paris" en epoch réel : on retire l'écart Paris↔UTC
+  const asUTC = new Date(nowParis.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const offset = nowParis.getTime() - asUTC.getTime();
+  return nowParis.getTime() - offset;
+});
+  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p=>[p.type,p.value]));
+  // minuit Europe/Paris en UTC (epoch ms)
   const y = parseInt(parts.year,10);
   const m = parseInt(parts.month,10);
   const d = parseInt(parts.day,10);
-  // construit minuit local (string sans TZ -> interprétée en local par V8, OK pour notre besoin ici)
-  const localMidnight = new Date(`${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}T00:00:00`);
+  // construire un Date dans le TZ cible via string ISO locale puis obtenir le timestamp réel
+  const localMidnight = new Date(`${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}T00:00:00`);
   return localMidnight.getTime();
 }
-
 function startOfWeek(){
   const now = new Date();
   const t0 = startOfToday();
