@@ -270,7 +270,7 @@ async function onCallbackQuery(cbq){
       await send('Envoie des <b>photos/vidéos</b>.\nTu peux vider d’abord les médias existants avec 🧹 puis ajouter.\nQuand c’est bon : ➡️ Terminer.', chatId, kbMedia());
     } else {
       sess.step='field_val'; sess.payload.field=field; await adminSessionSet(userId, sess);
-      const labelMap={name:'Nom',description:'Description',unit:'Unité',price_cash:'Prix cash (€)',price_crypto:'Prix crypto (€)'};
+      const labelMap={name:'Nom',description:'Description',unit:'Unité',price_cash:'Prix cash (€)',price_crypto:'Prix crypto (€)',stock:'Stock (nombre ou "illimité")'};
       await send(`${labelMap[field]||field} ?`, chatId, kbConfirm());
     }
     return;
@@ -561,6 +561,7 @@ async function handleAdminFlowStep(msg, sess){
         [{text:'Nom', callback_data:'admin:edit_field:name'}, {text:'Description', callback_data:'admin:edit_field:description'}],
         [{text:'Unité', callback_data:'admin:edit_field:unit'}],
         [{text:'Prix cash', callback_data:'admin:edit_field:price_cash'}, {text:'Prix crypto', callback_data:'admin:edit_field:price_crypto'}],
+        [{text:'Stock', callback_data:'admin:edit_field:stock'}],
         [{text:'Médias', callback_data:'admin:edit_field:media'}],
         [{text:'Annuler', callback_data:'cancel'}]
       ];
@@ -574,8 +575,19 @@ async function handleAdminFlowStep(msg, sess){
       const field = sess.payload.field;
       const val = msg.text.trim();
       const p = products[idx];
-      if (field==='price_cash' || field==='price_crypto'){ p[field] = Number(val.replace(',','.'))||0; }
-      else { p[field] = val; }
+      if (field==='price_cash' || field==='price_crypto'){
+          p[field] = Number(val.replace(',','.'))||0;
+        } else if (field==='stock'){
+          const t = val.trim().toLowerCase();
+          if (t==='∞' || t.includes('illimit') || t==='infinite' || t==='unlimited'){
+            p.stock = '∞';
+          } else {
+            const n = Math.max(0, parseInt(val,10) || 0);
+            p.stock = n;
+          }
+        } else {
+          p[field] = val;
+        }
       products[idx]=p; await kv.set('products', products);
       await adminSessionClear(userId); await send('✅ Produit modifié.', chatId, adminProductsKb()); return;
     }

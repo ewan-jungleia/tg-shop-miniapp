@@ -1,8 +1,8 @@
+// api/products.js
 const { kv } = require('@vercel/kv');
 
 module.exports = async (req, res) => {
   try {
-    if (req.method === 'HEAD') { res.statusCode = 200; return res.end(); }
     if (req.method !== 'GET') { res.statusCode = 405; return res.end('Method Not Allowed'); }
 
     const defaults = {
@@ -17,13 +17,21 @@ module.exports = async (req, res) => {
       channels: [],
       admins: [],
       deliveryForm: {
-        fields: { firstname:true, lastname:true, address1:true, postalCode:true, city:true, country:true }
+        fields: {
+          firstname: true,
+          lastname: true,
+          address1: true,
+          postalCode: true,
+          city: true,
+          country: true
+        }
       }
     };
 
     let settings = await kv.get('settings');
     if (!settings) { settings = defaults; await kv.set('settings', settings); }
     else {
+      // merge soft des defaults
       settings = { ...defaults, ...settings };
       settings.deliveryForm = {
         fields: { ...defaults.deliveryForm.fields, ...(settings.deliveryForm?.fields||{}) }
@@ -32,12 +40,7 @@ module.exports = async (req, res) => {
     }
 
     let products = await kv.get('products');
-    if (!Array.isArray(products)) products = [];
-    let changed = false;
-    for (const p of products) {
-      if (p && typeof p.stock === 'undefined') { p.stock = '∞'; changed = true; }
-    }
-    if (changed) await kv.set('products', products);
+    if (!products) { products = []; await kv.set('products', products); }
 
     res.setHeader('Content-Type', 'application/json');
     res.statusCode = 200;
