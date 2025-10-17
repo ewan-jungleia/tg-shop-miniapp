@@ -3,6 +3,8 @@ const { kv } = require('@vercel/kv');
 
 module.exports = async (req, res) => {
   try {
+    if (req.method === 'HEAD') { res.statusCode = 200; return res.end(); }
+
     if (req.method !== 'GET') { res.statusCode = 405; return res.end('Method Not Allowed'); }
 
     const defaults = {
