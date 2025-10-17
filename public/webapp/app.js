@@ -174,9 +174,13 @@ function renderCatalog() {
   const sel = {
     label: card.dataset.selLabel,
     cash: Number(card.dataset.selCash ?? p.price_cash ?? 0),
-    crypto: Number(card.dataset.selCrypto ?? p.price_crypto ?? 0)
+    crypto: Number(card.dataset.selCrypto ?? p.price_crypto ?? 0),
+    stock: (card.dataset.selStock ?? p.stock ?? '∞') + ''
   };
-  addToCart(p, qty, numericStock, isUnlimited, sel);
+  const stRaw = sel.stock;
+  const isUnl = (stRaw === '∞' || /illimit/i.test(stRaw) || stRaw === '');
+  const numSt = isUnl ? Number.MAX_SAFE_INTEGER : Math.max(0, parseInt(stRaw,10) || 0);
+  addToCart(p, qty, numSt, isUnl, sel);
   openCart('cart');
 };
   });
@@ -191,7 +195,7 @@ function mediaEl(m) {
 
 /* — Cart helpers — */
 function addToCart(p, qty, numericStock, isUnlimited, sel){
-  const existing = state.cart.items.find(x=>x.id===p.id);
+  const existing = state.cart.items.find(x => x.id===p.id && (x.unit||'') === (sel?.label || p.unit || ''));
   let newQty = qty;
   if (!isUnlimited) {
     const already = existing ? Number(existing.qty||0) : 0;
