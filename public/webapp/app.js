@@ -443,3 +443,24 @@ function fmtEUR(n){ return new Intl.NumberFormat('fr-FR',{style:'currency', curr
 
 window.addEventListener('load', ()=> setTimeout(updateCartBadge, 200));
 document.addEventListener('visibilitychange', ()=> setTimeout(updateCartBadge, 200));
+
+function renderVariantTable(product){
+  try{
+    const wrap=document.querySelector('.variant-table');
+    if(!wrap) return;
+    const vars = product.variants||[];
+    let html='<table><thead><tr><th>Variante</th>';
+    const pm = (window.state?.settings?.paymentMethods)||{cash:true,crypto:true};
+    if(pm.cash) html+='<th>Cash</th>';
+    if(pm.crypto) html+='<th>Crypto</th>';
+    html+='<th>Stock</th></tr></thead><tbody>';
+    vars.forEach(v=>{
+      html+='<tr><td>'+v.label+'</td>';
+      if(pm.cash) html+='<td>'+v.price_cash+' €</td>';
+      if(pm.crypto) html+='<td>'+v.price_crypto+' €</td>';
+      html+='<td>'+(v.stock||'∞')+'</td></tr>';
+    });
+    html+='</tbody></table>';
+    wrap.innerHTML=html;
+  }catch(e){console.error('variantTable',e);}
+}
