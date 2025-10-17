@@ -35,7 +35,7 @@ const { preview, apply, rollback, currentDataVersion } = require('./_patchEngine
 const PATCH_SECRET = '';
 const BOT = () => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  return axios.create({ baseURL: `https://api.telegram.org/bot${token}` });
+  return axios.create({ baseURL: `https://api.telegram.org/bot${token}`, params:{ parse_mode:'HTML' } });
 };
 
 module.exports = async (req, res) => {
