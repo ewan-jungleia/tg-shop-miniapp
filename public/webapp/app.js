@@ -412,30 +412,3 @@ function fmtEUR(n){ return new Intl.NumberFormat('fr-FR',{style:'currency', curr
 
 window.addEventListener('load', ()=> setTimeout(updateCartBadge, 200));
 document.addEventListener('visibilitychange', ()=> setTimeout(updateCartBadge, 200));
-
-
-/* ==== UI FIXES: qty label + base stock ==== */
-function __fixQtyAndStockLabels(){
-  try{
-    // 1) "Qté (xxx)" -> "Qté"
-    document.querySelectorAll('#catalog *').forEach(el=>{
-      const t=(el.textContent||'').trim();
-      if(/^Qtés*(/.test(t)) el.textContent='Qté';
-    });
-    // 2) Masquer "Stock : ..." (niveau produit), garder "Stock (variante) : ..."
-    document.querySelectorAll('#catalog *').forEach(el=>{
-      const t=(el.textContent||'').trim();
-      if(/^Stocks*:/.test(t) && !/variante/i.test(t)) el.style.display='none';
-    });
-  }catch(_){}
-}
-
-/* appelle le fixeur au load et périodiquement (faible cadence) */
-(function(){
-  try{
-    __fixQtyAndStockLabels();
-    if(!window.__qtyStockFixTimer){
-      window.__qtyStockFixTimer = setInterval(__fixQtyAndStockLabels, 700);
-    }
-  }catch(_){}
-})();
