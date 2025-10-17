@@ -139,7 +139,7 @@ function adminFormKb(fields){
   const f=fields||{};
   return [
     [{ text:`Prénom: ${f.firstname?'✅':'❌'}`, callback_data:'admin:form_toggle:firstname' }, { text:`Nom: ${f.lastname?'✅':'❌'}`, callback_data:'admin:form_toggle:lastname' }],
-    [{ text:`Adresse: ${f.address1?'✅':'❌'}`, callback_data:'admin:form_toggle:address1' }],
+    [{ text:`Infos: ${f.address1?'✅':'❌'}`, callback_data:'admin:form_toggle:address1' }],
     [{ text:`CP: ${f.postalCode?'✅':'❌'}`, callback_data:'admin:form_toggle:postalCode' }, { text:`Ville: ${f.city?'✅':'❌'}`, callback_data:'admin:form_toggle:city' }],
     [{ text:`Pays: ${f.country?'✅':'❌'}`, callback_data:'admin:form_toggle:country' }],
     [{ text:'🔁 Réinitialiser', callback_data:'admin:form_reset' }],
