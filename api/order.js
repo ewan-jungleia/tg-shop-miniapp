@@ -1,6 +1,5 @@
 const axios = require('axios');
-const { kv } = require('@vercel/kv');
-
+const { kv } = require('./_kv');
 const BOT = () => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   return axios.create({ baseURL: `https://api.telegram.org/bot${token}` });

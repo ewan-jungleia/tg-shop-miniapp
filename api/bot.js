@@ -1,6 +1,6 @@
 // api/bot.js
 const axios = require('axios');
-const { kv } = require('@vercel/kv');
+const { kv } = require('./_kv');
 // --- admin session (KV) ---
 const ADMIN_SESS_PREFIX = 'admin:sess:';
 async function adminSessionGet(uid){ try{ return (await kv.get(ADMIN_SESS_PREFIX+uid)) || null; }catch(_){ return null; } }
