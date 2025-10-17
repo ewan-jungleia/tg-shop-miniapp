@@ -37,17 +37,10 @@ async function init() {
   applyDeliveryFieldsVisibility();
 }
 
+/* ---------- UI de base ---------- */
 function setupTabs() {
   document.querySelectorAll('.tabs button').forEach(btn=>{
-    btn.onclick = ()=> {
-      const variantSel = document.getElementById('variant-' + p.id);
-      const variantIdx = variantSel ? parseInt(variantSel.value,10) : 0;
-      const variant = (Array.isArray(p.variants) ? p.variants[variantIdx] : null);
-      const unit = variant?.unit || p.unit || 'standard';
-      const price_cash = variant?.price_cash || p.price_cash;
-      const price_crypto = variant?.price_crypto || p.price_crypto;
-      const selected = Object.assign({}, p, {unit, price_cash, price_crypto});
-      
+    btn.onclick = ()=>{
       document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
@@ -66,11 +59,31 @@ function renderDescFaqContact() {
       : `Aucun contact défini.`;
 }
 
+/* ---------- Helpers Variantes ---------- */
+function productVariants(p){
+  // S'il n'y a pas de variantes, on crée une variante "par défaut"
+  if (Array.isArray(p.variants) && p.variants.length){
+    return p.variants.map(v=>({
+      unit: v.unit || p.unit || '1u',
+      price_cash: Number(v.price_cash ?? p.price_cash ?? 0),
+      price_crypto: Number(v.price_crypto ?? p.price_crypto ?? 0),
+    }));
+  }
+  return [{
+    unit: p.unit || '1u',
+    price_cash: Number(p.price_cash||0),
+    price_crypto: Number(p.price_crypto||0)
+  }];
+}
+
+/* ---------- Catalogue ---------- */
 function renderCatalog() {
   const root = document.getElementById('catalog');
   root.innerHTML = '';
   state.products.forEach(p=>{
-    const card = document.createElement('div'); card.className='card';
+    const card = document.createElement('div'); 
+    card.className='card';
+    card.dataset.pid = p.id;
 
     // Galerie médias (tous)
     if (Array.isArray(p.media) && p.media.length){
@@ -79,10 +92,17 @@ function renderCatalog() {
       card.appendChild(gal);
     }
 
-    const unitInfo = p.unit ? ` (${p.unit})` : '';
+    const variants = productVariants(p);
+    const varId = `variant-${p.id}`;
+    const priceIdCash = `price-cash-${p.id}`;
+    const priceIdCrypto = `price-crypto-${p.id}`;
+
+    // Bloc principal
+    const unitInfo = (variants[0]?.unit ? ` (${variants[0].unit})` : '');
     card.innerHTML += `
       <h3>${p.name}</h3>
       <div class="row">${p.description || ''}</div>
+
       <div class="row">
         <div class="qty">
           <label>Qté${unitInfo}</label>
@@ -93,54 +113,83 @@ function renderCatalog() {
           </div>
         </div>
         <div class="row" style="margin-left:auto; gap:16px;">
-          <div>Prix cash : ${fmtEUR(p.price_cash)}</div>
-          <div>Prix crypto : ${fmtEUR(p.price_crypto)}</div>
+          <div>Prix cash : <span id="${priceIdCash}">${fmtEUR(variants[0].price_cash)}</span></div>
+          <div>Prix crypto : <span id="${priceIdCrypto}">${fmtEUR(variants[0].price_crypto)}</span></div>
         </div>
       </div>
-      <button class="primary" data-add="${p.id}">Ajouter au panier</button>
     `;
+
+    // Sélecteur de variante (toujours rendu, caché si 1 seule variante)
+    const sel = document.createElement('select');
+    sel.id = varId;
+    sel.className = 'variantSelect';
+    sel.style.cssText = 'margin:8px 0 6px;border-radius:8px;padding:6px;';
+    sel.innerHTML = variants.map((v,i)=>
+      `<option value="${i}">${v.unit} — ${fmtEUR(v.price_cash)} / ${fmtEUR(v.price_crypto)}</option>`
+    ).join('');
+    if (variants.length <= 1) sel.style.display = 'none';
+    card.appendChild(sel);
+
+    // Bouton ajouter
+    const btn = document.createElement('button');
+    btn.className = 'primary';
+    btn.setAttribute('data-add', p.id);
+    btn.textContent = 'Ajouter au panier';
+    card.appendChild(btn);
+
+    // +/- handlers (quantité)
+    // NB: on les accroche après insertion dans le DOM
     root.appendChild(card);
-  });
 
-  // +/- handlers
-  root.querySelectorAll('button.minus').forEach(b=>{
-    b.onclick = ()=>{
-      const id=b.getAttribute('data-id');
-      const input = root.querySelector(`input.qtyInput[data-id="${id}"]`);
-      const v = Math.max(1, (parseInt(input.value,10)||1) - 1);
-      input.value = v;
-    };
-  });
-  root.querySelectorAll('button.plus').forEach(b=>{
-    b.onclick = ()=>{
-      const id=b.getAttribute('data-id');
-      const input = root.querySelector(`input.qtyInput[data-id="${id}"]`);
-      input.value = Math.max(1, (parseInt(input.value,10)||1) + 1);
-    };
-  });
+    // Handlers quantité
+    const minus = card.querySelector('button.minus');
+    const plus  = card.querySelector('button.plus');
+    const input = card.querySelector('input.qtyInput');
 
-  // Ajouter au panier sans popup
-  root.querySelectorAll('button[data-add]').forEach(btn=>{
+    minus.onclick = ()=>{ input.value = Math.max(1, (parseInt(input.value,10)||1) - 1); };
+    plus.onclick  = ()=>{ input.value = Math.max(1, (parseInt(input.value,10)||1) + 1); };
+
+    // MAJ prix quand variante change
+    sel.onchange = ()=>{
+      const v = variants[parseInt(sel.value,10)||0] || variants[0];
+      const cash = document.getElementById(priceIdCash);
+      const crypto = document.getElementById(priceIdCrypto);
+      if (cash) cash.textContent = fmtEUR(v.price_cash);
+      if (crypto) crypto.textContent = fmtEUR(v.price_crypto);
+      // MAJ du label Qté (…) à côté
+      const lbl = card.querySelector('.qty label');
+      if (lbl) lbl.textContent = `Qté (${v.unit})`;
+    };
+
+    // Ajouter au panier
     btn.onclick = ()=>{
-      const id = btn.getAttribute('data-add');
-      const p = state.products.find(x=>x.id===id);
-      const input = root.querySelector(`input.qtyInput[data-id="${id}"]`);
+      const id = p.id;
       const qty = Math.max(1, parseInt(input.value,10) || 1);
-      
+      const variantIdx = parseInt((document.getElementById(varId)?.value)||'0', 10) || 0;
+      const v = variants[variantIdx] || variants[0];
+      const selected = {
+        id: p.id,
+        name: p.name,
+        unit: v.unit || p.unit || '1u',
+        price_cash: Number(v.price_cash ?? p.price_cash ?? 0),
+        price_crypto: Number(v.price_crypto ?? p.price_crypto ?? 0)
+      };
       addToCart(selected, qty);
       openCart('cart');
     };
   });
 }
 
+/* ---------- Helpers DOM ---------- */
 function mediaEl(m) {
   if (m.type==='photo') { const img = document.createElement('img'); img.src=m.url; img.alt=''; return img; }
   if (m.type==='video') { const v = document.createElement('video'); v.src=m.url; v.controls=true; return v; }
   return null;
 }
 
+/* ---------- Panier ---------- */
 function addToCart(p, qty) {
-  const existing = state.cart.items.find(x=>x.id===p.id);
+  const existing = state.cart.items.find(x=>x.id===p.id && x.unit===p.unit);
   if (existing) existing.qty += qty;
   else state.cart.items.push({ id:p.id, name:p.name, unit:p.unit, qty, price_cash:p.price_cash, price_crypto:p.price_crypto });
   persistCart();
@@ -165,7 +214,7 @@ function renderCartItems() {
     const row = document.createElement('div'); row.className='row cart-item';
     row.innerHTML = `<div class="cart-text">${it.name} x ${it.qty} (${it.unit||'1u'}) — Prix cash : ${fmtEUR(it.price_cash)} / Prix crypto : ${fmtEUR(it.price_crypto)}</div>`;
     const del = document.createElement('button'); del.textContent='Supprimer'; del.onclick=()=>{
-      state.cart.items = state.cart.items.filter(x=>x.id!==it.id); persistCart(); renderCartItems();
+      state.cart.items = state.cart.items.filter(x=>!(x.id===it.id && x.unit===it.unit)); persistCart(); renderCartItems();
     };
     row.appendChild(del);
     root.appendChild(row);
@@ -248,8 +297,8 @@ function hookupCartModal() {
         `✅ <b>Votre commande ${data.order_id} a été validée !</b>`,
         `Total: ${fmtEUR(totals.cash)} (cash) • ${fmtEUR(totals.crypto)} (crypto)`,
         ``,
-        `▶️ Contactez : <a href="${data.contact_link}" target="_blank">${data.contact_link}</a>`,
-        `et envoyez votre numéro de commande : <b>${data.order_id}</b>.`
+        `▶️ Contactez : <a href="\${data.contact_link}" target="_blank">\${data.contact_link}</a>`,
+        `et envoyez votre numéro de commande : <b>\${data.order_id}</b>.`
       ].join('<br>');
       state.cart.items = []; persistCart(); renderCartItems();
     } else {
@@ -290,8 +339,10 @@ function applyDeliveryFieldsVisibility(){
   });
 }
 
+/* ---------- Utils ---------- */
 function fmtEUR(n){ return new Intl.NumberFormat('fr-FR',{style:'currency', currency:'EUR'}).format(Number(n||0)); }
-// v1.1 append-only: lightbox + cart badge (robust)
+
+/* -------- Lightbox & badge: repris de ta version existante -------- */
 (function(){
   var lb=document.getElementById('lightbox'),
       inner=document.getElementById('lbInner'),
@@ -329,59 +380,15 @@ function fmtEUR(n){ return new Intl.NumberFormat('fr-FR',{style:'currency', curr
     Object.assign(cartBtn.style,{position:'fixed',right:'16px',bottom:'16px',zIndex:9998,borderRadius:'12px',padding:'10px 12px',background:'#fff',border:'1px solid #e5e7eb'});
     document.body.appendChild(cartBtn);
   }
-
   function getCartRoot(){ return document.getElementById('cartOverlay')||document.getElementById('cart')||document; }
-  function openCart(){
-    var el=document.getElementById('cartOverlay');
-    if(el){ el.classList.remove('hidden'); }
-    else { var c=document.getElementById('cart')||document.querySelector('[data-cart]'); if(c) try{ c.scrollIntoView({behavior:'smooth',block:'start'}) }catch(e){} }
-  }
-  if(!cartBtn._wired){ cartBtn._wired=true; cartBtn.addEventListener('click',openCart,true); }
+  function openCartBtn(){ var el=document.getElementById('cartOverlay'); if(el){ el.classList.remove('hidden'); } else { var c=document.getElementById('cart')||document.querySelector('[data-cart]'); if(c) try{ c.scrollIntoView({behavior:'smooth',block:'start'}) }catch(e){} } }
+  if(!cartBtn._wired){ cartBtn._wired=true; cartBtn.addEventListener('click',openCartBtn,true); }
 
-  function countFromState(){
-    try{
-      if(window.state && Array.isArray(window.state.cart && window.state.cart.items)){
-        return window.state.cart.items.reduce(function(n,it){ return n + (+it.qty||0); }, 0);
-      }
-    }catch(e){}
-    return 0;
-  }
-  function countFromDom(){
-    var c=0, root=getCartRoot();
-    root.querySelectorAll('#cartItems input[type="number"], #cartItems .qty, #cartItems [data-qty]').forEach(function(q){
-      var v=(q.value||q.textContent||q.getAttribute('data-qty')||'0'); c += (+v||0);
-    });
-    return c;
-  }
-  function updateBadge(){
-    if(!cartBtn) return;
-    var n=countFromState(); if(!n) n=countFromDom();
-    if(n>0) cartBtn.setAttribute('data-count', String(n)); else cartBtn.removeAttribute('data-count');
-  }
-
-  document.addEventListener('click', function(e){
-    var t=(e.target.textContent||e.target.getAttribute('aria-label')||'').toLowerCase();
-    if(t.includes('ajouter au panier')||t.includes('supprimer')||t.includes('valider')||t.includes('panier')){
-      setTimeout(updateBadge,150);
-    }
-  }, true);
-
-  window.addEventListener('load', function(){ setTimeout(updateBadge,400); }, true);
-
-  var mo=new MutationObserver(function(){ setTimeout(updateBadge,120); });
-  mo.observe(getCartRoot(), {childList:true,subtree:true});
-
-  var timer=setInterval(updateBadge,800);
-  setTimeout(function(){ clearInterval(timer); }, 180000);
-
-  window.__forceUpdateCartBadge = updateBadge;
-
-  // --- Fix compteur panier (basé sur .cart-text) ---
   function updateBadgeFromCart(){
     if(!cartBtn) return;
     let count = 0;
     document.querySelectorAll('#cartItems .cart-text').forEach(el=>{
-      const m = el.textContent.match(/x\\s*(\\d+)/);
+      const m = el.textContent.match(/x\s*(\d+)/i);
       if(m) count += parseInt(m[1],10);
     });
     if(count>0){
@@ -390,8 +397,6 @@ function fmtEUR(n){ return new Intl.NumberFormat('fr-FR',{style:'currency', curr
       cartBtn.removeAttribute('data-count');
     }
   }
-
-  // Mets à jour quand le panier change (ajout/suppression/fermeture etc.)
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('button');
     if(!btn) return;
@@ -400,55 +405,5 @@ function fmtEUR(n){ return new Intl.NumberFormat('fr-FR',{style:'currency', curr
       setTimeout(updateBadgeFromCart, 150);
     }
   });
-  // Quand l’overlay panier s’ouvre/ferme, on refait un comptage
-  const cartOverlay = document.getElementById('cartOverlay');
-  if(cartOverlay){
-    cartOverlay.addEventListener('transitionend', ()=> setTimeout(updateBadgeFromCart,100));
-  }
-  // Maj au chargement
   window.addEventListener('load', ()=> setTimeout(updateBadgeFromCart, 400));
-
-})();
-
-/* cart badge fix: openCart */
-(function(){
-  const cartBtn = document.querySelector('#openCart, #cartBtn, .cartFab, .fab[aria-label="Voir le panier"]');
-  if(!cartBtn) return;
-
-  function computeCount(){
-    let n = 0;
-    document.querySelectorAll('#cartItems .cart-text').forEach(el=>{
-      const m = el.textContent.match(/x\s*(\d+)/i);
-      if(m) n += parseInt(m[1],10);
-    });
-    return n;
-  }
-  function refresh(){
-    const n = computeCount();
-    if(n>0) cartBtn.setAttribute('data-count', String(n));
-    else cartBtn.removeAttribute('data-count');
-  }
-
-  // Observe dynamiquement le contenu du panier
-  const target = document.querySelector('#cartItems');
-  if(target && 'MutationObserver' in window){
-    const mo = new MutationObserver(()=> setTimeout(refresh, 50));
-    mo.observe(target, {childList:true, subtree:true, characterData:true});
-  }
-
-  // Sécurités supplémentaires sur clics communs
-  document.addEventListener('click', (e)=>{
-    const btn = e.target.closest('button,[role="button"]');
-    if(!btn) return;
-    const t = (btn.textContent || btn.getAttribute('aria-label') || '').toLowerCase();
-    if(t.includes('ajouter au panier') || t.includes('supprimer') || t.includes('passer à la commande')){
-      setTimeout(refresh, 120);
-    }
-  });
-
-  window.addEventListener('load', ()=> setTimeout(refresh, 200));
-  refresh();
-  // Garde-fou : si un autre code écrase data-count, on le remet
-  setInterval(refresh, 800);
-  document.addEventListener('visibilitychange', ()=> setTimeout(refresh,100));
 })();
