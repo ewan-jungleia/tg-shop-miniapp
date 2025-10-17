@@ -106,7 +106,7 @@ function renderCatalog() {
 
     card.innerHTML += `
       <h3>${p.name}</h3>
-      <div class="row">${p.description || ''}</div>
+      <div class="row qtyRow"><div class="row">${p.description || ''}</div>
       <div class="row" style="align-items:center; gap:12px;">
         <div class="qty">
           <label>Qté</label>
@@ -117,7 +117,7 @@ function renderCatalog() {
           </div>
         </div>
         <div class="row" style="margin-left:auto; gap:16px;">
-          <div>Prix cash : ${fmtEUR(p.price_cash)}</div>
+          <div class="priceRow"><div>Prix cash : ${fmtEUR(p.price_cash)}</div></div>
           <div>${(()=>{const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};const bits=[];if(pm.cash)bits.push("Prix cash : "+fmtEUR(p.price_cash));if(pm.crypto)bits.push("Prix crypto : "+fmtEUR(p.price_crypto));return bits.join("   ");})()}</div>
         </div>
       </div>
@@ -128,119 +128,65 @@ function renderCatalog() {
     `;
     root.appendChild(card);
     /* VARIANT LOGIC START */
-    (function(){
-      try{
-        if(Array.isArray(p.variants) && p.variants.length){
-          // Crée un select des variantes
-          const sel = document.createElement('select');
-          sel.className='variantSelect';
-     try{
-       (function decorateVariantOptions(){
-         const pm=(window.state&&window.state.settings&&window.state.settings.paymentMethods)||{cash:true,crypto:true};
-         const fmtE=(n)=> (Number(n)||0).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
-         const opts = sel.querySelectorAll('option');
-         for(let i=0;i<opts.length;i++){
-           const v=variants[i]; if(!v) continue;
-           const parts=[String(v.label||'').trim()];
-           const priceBits=[];
-           if(pm.cash)   priceBits.push('Cash: '+fmtE(v.price_cash));
-           if(pm.crypto) priceBits.push('Crypto: '+fmtE(v.price_crypto));
-           if(priceBits.length) parts.push(priceBits.join(' | '));
-           const raw = (v.stock==null || String(v.stock).trim()==='' || String(v.stock).trim()==='∞') ? 'illimité' : String(v.stock).trim();
-           parts.push('Stock: '+raw);
-           opts[i].textContent = parts.join(' — ');
-         }
-       })();
-       /* masque “Stock : …” (base produit) s’il traîne dans la carte */
-       document.querySelectorAll('#catalog *').forEach(el=>{
-         const t = (el.textContent||'').trim();
-         if (/^Stocks*:/.test(t) && !/variante/i.test(t)) { el.style.display='none'; }
-       });
-     }catch(e){ console.error('variant option decorate error', e); }
-          p.variants.forEach((v,i)=>{
-            const opt=document.createElement('option');
-            opt.value=String(i);
-            opt.textContent=v.label||('Var '+(i+1));
-            opt.dataset.price_cash = Number(v.price_cash||0);
-            opt.dataset.price_crypto = Number(v.price_crypto||0);
-            opt.dataset.stock = (v.stock==null || String(v.stock).trim()==='' ? '∞' : String(v.stock));
-            sel.appendChild(opt);
-          });
 
-          // Insère le select juste après le titre
-          const h3 = card.querySelector('h3');
-          if(h3 && h3.parentNode){
-            const row=document.createElement('div');
-            row.className='row';
-            const lab=document.createElement('label');
-            lab.textContent='Quantité / variante';
-            lab.style.marginRight='8px';
-            row.appendChild(lab);
-            row.appendChild(sel);
-            h3.parentNode.insertBefore(row, h3.nextSibling);
-          }
-
-          // Trouve les zones de prix et ajoute un petit affichage stock
-          const priceCashEl  = Array.from(card.querySelectorAll('.row div')).find(el=>/Prix cash/i.test(el.textContent||''));
-          const priceCryptEl = Array.from(card.querySelectorAll('.row div')).find(el=>/Prix crypto/i.test(el.textContent||''));
-          let stockBadge = card.querySelector('.variantStock');
-          if(!stockBadge){
-            stockBadge=document.createElement('div');
-            stockBadge.className='variantStock';
-            stockBadge.style.fontSize='12px';
-            stockBadge.style.opacity='0.8';
-            stockBadge.style.marginTop='4px';
-            priceCryptEl?.parentNode?.appendChild(stockBadge);
-          }
-
-          function fmtEUR(n){ try{ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n||0)); }catch(_){ return String(n); } }
-
-          function refreshByVariant(){
-            const opt = sel.selectedOptions[0];
-            if(opt){
-              const pc = Number(opt.dataset.price_cash||0);
-              const pr = Number(opt.dataset.price_crypto||0);
-              const st = String(opt.dataset.stock||'∞');
-              if(priceCashEl)  priceCashEl.textContent  = 'Prix cash : '+fmtEUR(pc);
-              if(priceCryptEl) priceCryptEl.textContent = 'Prix crypto : '+fmtEUR(pr);
-              if(stockBadge)   stockBadge.textContent   = 'Stock (variante) : '+(st==='∞'?'illimité':st);
-            }
-          }
-          sel.addEventListener('change', refreshByVariant);
-          refreshByVariant();
-
-          // Hook "Ajouter au panier" pour inclure la variante choisie
-          const addBtn = card.querySelector('button.primary[data-add="'+p.id+'"]');
-          if(addBtn && !addBtn._variantHooked){
-            addBtn._variantHooked=true;
-            const orig = addBtn.onclick;
-            addBtn.onclick = ()=>{
-              try{
-                const idx = parseInt(sel.value,10)||0;
-                const v = p.variants[idx]||p.variants[0];
-                // On surchage temporairement p pour addToCart
-                const tmp = Object.assign({}, p);
-                tmp.name = p.name + ' — ' + (v.label||'Variante');
-                tmp.price_cash = Number(v.price_cash||0);
-                tmp.price_crypto = Number(v.price_crypto||0);
-                // Trouve l’input quantité
-                const qtyInput = card.querySelector('input.qtyInput[data-id="'+p.id+'"]');
-                const qty = Math.max(1, parseInt(qtyInput?.value||'1',10)||1);
-                // Appelle addToCart existante
-                window.__addToCartPublic ? window.__addToCartPublic(tmp, qty) : addToCart(tmp, qty);
-                // Ouvre le panier
-                if(typeof openCart==='function') openCart('cart');
-              }catch(e){
-                console.error('addToCart variant error', e);
-              }
-            };
-          }
+  function buildVariantUI(card,p){
+    const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};
+    const holder = card.querySelector('.variantHolder') || card;
+    holder.querySelectorAll('.variantSelect,.variantList').forEach(el=>el.remove());
+    const list=document.createElement('div');
+    list.className='variantList';
+    (p.variants||[]).forEach((v,idx)=>{
+      const row=document.createElement('button');
+      row.type='button';
+      row.className='variantRow';
+      row.dataset.label=(v.label||'').trim();
+      row.dataset.price_cash=Number(v.price_cash||0);
+      row.dataset.price_crypto=Number(v.price_crypto||0);
+      row.dataset.stock=(v.stock==null || String(v.stock).trim()==='' ? '∞' : String(v.stock).trim());
+      const priceBits=[];
+      if(pm.cash)   priceBits.push('Cash: '+fmtEUR(Number(v.price_cash||0)));
+      if(pm.crypto) priceBits.push('Crypto: '+fmtEUR(Number(v.price_crypto||0)));
+      row.innerHTML = `
+        <span class="vLabel">${row.dataset.label}</span>
+        <span class="vPrices">${priceBits.join('  |  ')}</span>
+        <span class="vStock">${row.dataset.stock==='∞'?'illimité':row.dataset.stock}</span>`;
+      row.addEventListener('click',()=>{
+        list.querySelectorAll('.variantRow').forEach(r=>r.classList.remove('active'));
+        row.classList.add('active');
+        card.dataset.selLabel = row.dataset.label;
+        card.dataset.selCash  = row.dataset.price_cash;
+        card.dataset.selCrypto= row.dataset.price_crypto;
+        card.dataset.selStock = row.dataset.stock;
+        const priceRow=card.querySelector('.priceRow');
+        if(priceRow){
+          const bits=[];
+          if(pm.cash)   bits.push('Prix cash : '+fmtEUR(Number(card.dataset.selCash||p.price_cash||0)));
+          if(pm.crypto) bits.push('Prix crypto : '+fmtEUR(Number(card.dataset.selCrypto||p.price_crypto||0)));
+          priceRow.textContent = bits.join('   ');
         }
-      }catch(e){
-        console.error('variantSelect inject error', e);
+        const sv=card.querySelector('.stockVariant');
+        if(sv){ sv.textContent='<span class="stockVariant">Stock (variante) : '+(card.dataset.selStock==='∞'?'illimité':card.dataset.selStock); }
+      });
+      list.appendChild(row);
+      if(idx===0) setTimeout(()=>row.click(),0);
+    });
+    const qtyBlock = card.querySelector('.qtyRow') || card;
+    qtyBlock.parentNode.insertBefore(list, qtyBlock);
+  }
+
+  (function(){
+    const cat=document.getElementById('catalog');
+    if(!cat) return;
+    const cards=cat.querySelectorAll('.product-card');
+    cards.forEach(card=>{
+      const pd = card.__productData;
+      if(pd && Array.isArray(pd.variants) && pd.variants.length){
+        buildVariantUI(card, pd);
       }
-    })();
-    /* VARIANT LOGIC END */
+    });
+  })();
+
+  /* VARIANT LOGIC END */
 
 
     const input = card.querySelector(`input.qtyInput[data-id="${p.id}"]`);
@@ -279,10 +225,17 @@ function addToCart(p, qty, numericStock, isUnlimited) {
   if (!isUnlimited) {
     const already = existing ? Number(existing.qty||0) : 0;
     newQty = Math.min(qty, Math.max(0, numericStock - already));
-    if (newQty<=0) { alert('Stock insuffisant'); return; }
+    if (newQty</span><=0) { alert('Stock insuffisant'); return; }
   }
   if (existing) existing.qty += newQty;
-  else state.cart.items.push({ id:p.id, name:p.name, unit:p.unit, qty:newQty, price_cash:p.price_cash, price_crypto:p.price_crypto });
+  else state.cart.items.push({
+    id: p.id,
+    name: p.name,
+    unit: (card.dataset.selLabel || p.unit),
+    qty: newQty,
+    price_cash: Number(card.dataset.selCash ?? p.price_cash ?? 0),
+    price_crypto: Number(card.dataset.selCrypto ?? p.price_crypto ?? 0)
+  });
   persistCart();
   renderCartItems();
   updateCartBadge();

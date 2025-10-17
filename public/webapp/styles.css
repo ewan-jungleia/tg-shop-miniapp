@@ -120,3 +120,10 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 /* — Renfort visibilité badge — */
 #openCart{ position:fixed; z-index:55 }
 #openCart[data-count]::after{ z-index:56 }
+
+.variantList{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+.variantRow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #242b3e;border-radius:10px;background:#121623}
+.variantRow .vLabel{font-weight:600}
+.variantRow .vPrices{opacity:.9;font-size:.95em}
+.variantRow .vStock{opacity:.7;font-size:.9em}
+.variantRow.active{outline:2px solid var(--accent); background:#101421}
