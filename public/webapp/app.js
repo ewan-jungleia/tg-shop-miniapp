@@ -160,7 +160,13 @@ function renderCatalog() {
           p.variants.forEach((v,i)=>{
             const opt=document.createElement('option');
             opt.value=String(i);
-            opt.textContent=v.label||('Var '+(i+1));
+            const pm = (window.state && window.state.settings && window.state.settings.paymentMethods) || {cash:true,crypto:true};
+const cashTxt = pm.cash ? (Number(v.price_cash||0).toFixed(2)+' €') : '';
+const crptTxt = pm.crypto ? (Number(v.price_crypto||0).toFixed(2)+' €') : '';
+const both = pm.cash && pm.crypto ? (' / '+crptTxt) : (pm.cash ? '' : (pm.crypto ? '' : ''));
+const priceTxt = pm.cash && pm.crypto ? (cashTxt+both) : (pm.cash ? cashTxt : crptTxt);
+const stockTxt = (v.stock==null || String(v.stock).trim()==='' || String(v.stock).trim()==='∞') ? 'illimité' : String(v.stock).trim();
+opt.textContent = `${v.label} — ${priceTxt}${priceTxt?' — ':''}stock:${stockTxt}`;||('Var '+(i+1));
             opt.dataset.price_cash = Number(v.price_cash||0);
             opt.dataset.price_crypto = Number(v.price_crypto||0);
             opt.dataset.stock = (v.stock==null || String(v.stock).trim()==='' ? '∞' : String(v.stock));
@@ -463,4 +469,29 @@ function renderVariantTable(product){
     html+='</tbody></table>';
     wrap.innerHTML=html;
   }catch(e){console.error('variantTable',e);}
+}
+
+function __setVariantPriceLabel(el, v, pm){
+  const fmt = n => (Number(n||0)).toFixed(2)+' €';
+  if(pm.cash && pm.crypto){
+    el.textContent = 'Prix : '+fmt(v.price_cash)+' (cash) / '+fmt(v.price_crypto)+' (crypto)';
+  } else if(pm.cash){
+    el.textContent = 'Prix cash : '+fmt(v.price_cash);
+  } else if(pm.crypto){
+    el.textContent = 'Prix crypto : '+fmt(v.price_crypto);
+  } else {
+    el.textContent = '';
+  }
+}
+
+function __hideGlobalStockWhenVariants(card){
+  try{
+    const has = !!card.querySelector('select.variantSelect');
+    if(!has) return;
+    const nodes = card.querySelectorAll('*');
+    nodes.forEach(n=>{
+      const t=(n.textContent||'').trim();
+      if(/^Stocks*:/.test(t) && !/variante/i.test(t)){ n.style.display='none'; }
+    });
+  }catch(_){}
 }
