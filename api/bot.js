@@ -1,12 +1,3 @@
-
-function fmtStockDisplay(st){
-  if(st==null) return 'illimité';
-  const raw=String(st).trim();
-  if(!raw || raw==='∞' || /^illimit/i.test(raw)) return 'illimité';
-  const n=parseInt(raw,10);
-  return Number.isFinite(n)?String(n):raw;
-}
-
 // api/bot.js
 const axios = require('axios');
 const { kv } = require('@vercel/kv');
@@ -250,7 +241,7 @@ async function onCallbackQuery(cbq){
     if (!products.length){ await send('Aucun produit.', chatId, adminProductsKb()); return; }
     const blocks=products.map(p=>{
       const mediaCount=(p.media||[]).length;
-      return `• <b>${p.name}</b> (${p.id})\n  Unité: ${p.unit||'-'} | Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €\n  Médias: ${mediaCount}\n  Desc: ${p.description||'-'}`; | Stock: ${fmtStockDisplay(p.stock)}
+      return `• <b>${p.name}</b> (${p.id})\n  Unité: ${p.unit||'-'} | Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €\n  Médias: ${mediaCount}\n  Desc: ${p.description||'-'}`;
     }).join('\n\n');
     await send(`<b>Produits actifs</b>\n\n${blocks}`, chatId, adminProductsKb()); return;
   }
