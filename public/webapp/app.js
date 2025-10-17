@@ -117,48 +117,42 @@ function renderCatalog() {
           </div>
         </div>
         <div class="row" style="margin-left:auto; gap:16px;">
-          <div class="priceRow"><div>Prix cash : ${fmtEUR(p.price_cash)}</div></div>
-          <div>${(()=>{const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};const bits=[];if(pm.cash)bits.push("Prix cash : "+fmtEUR(p.price_cash));if(pm.crypto)bits.push("Prix crypto : "+fmtEUR(p.price_crypto));return bits.join("   ");})()}</div>
+          <div class="priceRow"></div>
         </div>
       </div>
       <div class="row" style="font-size:12px; color:#9aa3b2;">
-        ${ outOfStock ? 'Rupture de stock' : (isUnlimited ? 'Stock : illimité' : ('Stock : '+numericStock)) }
+        <span class="stockVariant"></span>
       </div>
       <button class="primary" data-add="${p.id}" ${outOfStock?'disabled':''}>${outOfStock?'Indisponible':'Ajouter au panier'}</button>
     `;
     root.appendChild(card);
-    /* VARIANT LOGIC START */
-window.__applyVariantsSafe = function(){
-  try{
-    if(!window.state||!state.products) return;
-    const cat=document.getElementById('catalog'); if(!cat) return;
-    const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};
-    const fmtEUR=(n)=> (new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'})).format(Number(n||0));
-    cat.querySelectorAll('.product-card').forEach(card=>{
-      const p=card.__productData; if(!p||!Array.isArray(p.variants)||!p.variants.length) return;
-      card.querySelectorAll('.variantList').forEach(el=>el.remove());
-      const list=document.createElement('div'); list.className='variantList';
-      (p.variants||[]).forEach((v,idx)=>{
-        const row=document.createElement('button'); row.type='button'; row.className='variantRow';
-        const label=String(v.label||'').trim();
-        const pc=Number(v.price_cash||0), pr=Number(v.price_crypto||0);
-        const st=(v.stock==null||String(v.stock).trim()==='')?'∞':String(v.stock).trim();
-        row.dataset.label=label; row.dataset.price_cash=pc; row.dataset.price_crypto=pr; row.dataset.stock=st;
-        const priceBits=[]; if(pm.cash) priceBits.push('Cash: '+fmtEUR(pc)); if(pm.crypto) priceBits.push('Crypto: '+fmtEUR(pr));
-        row.innerHTML=`<span class="vLabel">${label}</span><span class="vPrices">${priceBits.join(' | ')}</span><span class="vStock">${st==='∞'?'illimité':st}</span>`;
-        row.onclick=()=>{ list.querySelectorAll('.variantRow').forEach(r=>r.classList.remove('active')); row.classList.add('active');
-          card.dataset.selLabel=label; card.dataset.selCash=pc; card.dataset.selCrypto=pr; card.dataset.selStock=st;
-          const priceRow=card.querySelector('.priceRow'); if(priceRow){ const bits=[]; if(pm.cash) bits.push('Prix cash : '+fmtEUR(pc)); if(pm.crypto) bits.push('Prix crypto : '+fmtEUR(pr)); priceRow.textContent=bits.join('   '); }
-          const sv=card.querySelector('.stockVariant'); if(sv){ sv.textContent='Stock (variante) : '+(st==='∞'?'illimité':st); }
-        };
-        list.appendChild(row); if(idx===0) setTimeout(()=>row.click(),0);
-      });
-      const qtyRow=card.querySelector('.qtyRow')||card;
-      qtyRow.parentNode.insertBefore(list, qtyRow);
-    });
-  }catch(e){ console.error('variants safe error',e); }
-};
-/* VARIANT LOGIC END */
+      if (Array.isArray(p.variants) && p.variants.length){
+        const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};
+        const fmt=(n)=> new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n||0));
+        const list=document.createElement('div'); list.className='variantList';
+        p.variants.forEach((v,idx)=>{
+          const row=document.createElement('button'); row.type='button'; row.className='variantRow';
+          const label=String(v.label||'').trim();
+          const pc=Number(v.price_cash||0), pr=Number(v.price_crypto||0);
+          const st=(v.stock==null||String(v.stock).trim()==='')?'∞':String(v.stock).trim();
+          const prices=[pm.cash?('Cash: '+fmt(pc)):'', pm.crypto?('Crypto: '+fmt(pr)):''].filter(Boolean).join(' | ');
+          row.innerHTML=`<span class="vLabel">${label}</span><span class="vPrices">${prices}</span><span class="vStock">${st==='∞'?'illimité':st}</span>`;
+          row.onclick=()=>{
+            list.querySelectorAll('.variantRow').forEach(r=>r.classList.remove('active')); row.classList.add('active');
+            card.dataset.selLabel=label; card.dataset.selCash=pc; card.dataset.selCrypto=pr; card.dataset.selStock=st;
+            const prEl=card.querySelector('.priceRow'); if(prEl){ const bits=[]; if(pm.cash) bits.push('Prix cash : '+fmt(pc)); if(pm.crypto) bits.push('Prix crypto : '+fmt(pr)); prEl.textContent=bits.join('   '); }
+            const sv=card.querySelector('.stockVariant'); if(sv){ sv.textContent='Stock (variante) : '+(st==='∞'?'illimité':st); }
+          };
+          list.appendChild(row);
+          if(idx===0) setTimeout(()=>row.click(),0);
+        });
+        const qtyRow=card.querySelector('.qtyRow')||card;
+        qtyRow.parentNode.insertBefore(list, qtyRow);
+      } else {
+        const pm=(state.settings&&state.settings.paymentMethods)||{cash:true,crypto:true};
+        const prEl=card.querySelector('.priceRow');
+        if(prEl){ const bits=[]; if(pm.cash) bits.push('Prix cash : '+fmtEUR(p.price_cash)); if(pm.crypto) bits.push('Prix crypto : '+fmtEUR(p.price_crypto)); prEl.textContent=bits.join('   '); }
+      }
 
 
     const input = card.querySelector(`input.qtyInput[data-id="${p.id}"]`);
