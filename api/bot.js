@@ -1,3 +1,12 @@
+function __fmtStockDisplay(st){
+  try{
+    if(st==null) return 'illimité';
+    const raw=String(st).trim();
+    if(!raw || raw==='∞' || /^illimit/i.test(raw)) return 'illimité';
+    const n=parseInt(raw,10);
+    return Number.isFinite(n)?String(n):raw;
+  }catch(_){ return 'illimité'; }
+}
 // api/bot.js
 const axios = require('axios');
 const { kv } = require('@vercel/kv');
