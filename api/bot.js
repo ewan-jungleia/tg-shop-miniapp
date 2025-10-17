@@ -1,3 +1,5 @@
+process.on("uncaughtException",e=>{console.error("⚠️ Uncaught:",e?.message||e);});
+process.on("unhandledRejection",e=>{console.error("⚠️ Unhandled:",e?.message||e);});
 // api/bot.js
 const axios = require('axios');
 const { kv } = require('@vercel/kv');
@@ -54,7 +56,13 @@ async function readJson(req) {
 }
 function isAdmin(userId, settings) { const list=settings?.admins||[]; return list.includes(String(userId)); }
 async function send(text, chat_id, inlineKb, plain=false){
-  return BOT().post('/sendMessage',{ chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined });
+  return BOT().post('/sendMessage', {
+    chat_id,
+    text,
+    parse_mode: plain ? undefined : 'HTML',
+    disable_web_page_preview: true,
+    reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined
+  });
 }
 function userHomeKb(){
   const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
@@ -668,26 +676,18 @@ function adminReportsKb(){
 }
 
 function startOfToday(){
-  // Calcule "minuit Europe/Paris" correct en epoch ms
+  // Calcule "minuit Europe/Paris" (epoch ms)
   const tz = 'Europe/Paris';
-  const now = new Date();
-  // nowParis est la date/heure PARIS matérialisée dans un objet Date local
-  const nowParis = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-  nowParis.setHours(0,0,0,0);
-  // Convertit ce "minuit Paris" en epoch réel : on retire l'écart Paris↔UTC
-  const asUTC = new Date(nowParis.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const offset = nowParis.getTime() - asUTC.getTime();
-  return nowParis.getTime() - offset;
-});
-  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p=>[p.type,p.value]));
-  // minuit Europe/Paris en UTC (epoch ms)
+  const fmt = new Intl.DateTimeFormat('fr-FR', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' });
+  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map(p => [p.type, p.value]));
   const y = parseInt(parts.year,10);
   const m = parseInt(parts.month,10);
   const d = parseInt(parts.day,10);
-  // construire un Date dans le TZ cible via string ISO locale puis obtenir le timestamp réel
-  const localMidnight = new Date(`${y.toString().padStart(4,'0')}-${m.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}T00:00:00`);
+  // construit minuit local (string sans TZ -> interprétée en local par V8, OK pour notre besoin ici)
+  const localMidnight = new Date(`${String(y).padStart(4,'0')}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}T00:00:00`);
   return localMidnight.getTime();
 }
+
 function startOfWeek(){
   const now = new Date();
   const t0 = startOfToday();
