@@ -109,7 +109,7 @@ function renderCatalog() {
       <div class="row">${p.description || ''}</div>
       <div class="row" style="align-items:center; gap:12px;">
         <div class="qty">
-          <label>Qté${unitInfo}</label>
+          <label>Qté</label>
           <div class="qtybox">
             <button type="button" class="minus" data-id="${p.id}">−</button>
             <input type="number" min="1" value="1" data-id="${p.id}" class="qtyInput">
