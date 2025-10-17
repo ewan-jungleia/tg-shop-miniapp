@@ -70,7 +70,7 @@ function __hideBaseStockLine(){
 }
 
 
-function __fixQtyLabel(){
+function {
   try{
     const scan = ()=>{
       (document.querySelectorAll('#catalog *')||[]).forEach(el=>{
@@ -82,6 +82,44 @@ function __fixQtyLabel(){
     scan();
     const mo = new MutationObserver(scan);
     mo.observe(document.getElementById('catalog')||document.body,{childList:true,subtree:true});
+  }catch(_){}
+}
+
+
+function __fixQtyLabel(){
+  try{
+    const normalize = (t)=> String(t||'')
+      .replace(/\u00A0/g,' ')      // NBSP -> espace
+      .replace(/\s+/g,' ')         // espaces multiples
+      .trim();
+
+    const scan = ()=>{
+      const root = document.getElementById('catalog') || document.body;
+      const nodes = root ? root.querySelectorAll('*') : [];
+      nodes.forEach(el=>{
+        if(!el || el.nodeType!==1) return;
+        const txt0 = normalize(el.textContent);
+        // Match "Qté (xxx)" avec parenthèses ou autres espaces
+        if(/^Qtés*(.+)$/i.test(txt0) || /^Qtés*(.+/.test(txt0)) {
+          // remplace par "Qté"
+          el.textContent = 'Qté';
+        }
+      });
+    };
+
+    // run now
+    scan();
+    // MutationObserver pour re-rendus
+    const root = document.getElementById('catalog') || document.body;
+    const mo = new MutationObserver(()=>scan());
+    if(root) mo.observe(root,{childList:true,subtree:true});
+
+    // filet de sécurité: interval court pendant 5s
+    const t0 = Date.now();
+    const id = setInterval(()=>{
+      scan();
+      if(Date.now()-t0>5000) clearInterval(id);
+    }, 300);
   }catch(_){}
 }
 
