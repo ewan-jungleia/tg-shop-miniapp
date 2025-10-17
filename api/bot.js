@@ -63,7 +63,7 @@ async function readJson(req) {
 }
 function isAdmin(userId, settings) { const list=settings?.admins||[]; return list.includes(String(userId)); }
 async function send(text, chat_id, inlineKb, plain=false){
-  return BOT().post('/sendMessage', { chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb } : undefined });
+  return BOT().post('/sendMessage',{ chat_id, text, reply_markup: inlineKb ? { inline_keyboard: inlineKb, parse_mode:'HTML'} : undefined });
 }
 function userHomeKb(){
   const base=(process.env.WEBAPP_URL||''); const webappUrl=base.includes('/webapp')?base:(base.replace(/\/$/,'')+'/webapp');
@@ -250,7 +250,9 @@ async function onCallbackQuery(cbq){
     if (!products.length){ await send('Aucun produit.', chatId, adminProductsKb()); return; }
     const blocks=products.map(p=>{
       const mediaCount=(p.media||[]).length;
-      return `• <b>${p.name}</b> (${p.id})\n  Unité: ${p.unit||'-'} | Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €\n  Médias: ${mediaCount}\n  Desc: ${p.description||'-'}`;
+      return `• <b>${p.name}</b> (${p.id})\n  Unité: ${p.unit||'-'} | Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €\n  Médias: ${mediaCount}\n  Desc: ${p.description||'-'}
+Stock: ${__fmtStockDisplay(p.stock)}
+`;
     }).join('\n\n');
     await send(`<b>Produits actifs</b>\n\n${blocks}`, chatId, adminProductsKb()); return;
   }
@@ -381,7 +383,9 @@ async function onCallbackQuery(cbq){
       const p=sess.payload;
       const recap=[
         `• Nom: ${p.name}`,
-        `• Desc: ${p.description}`,
+        `• Desc: ${p.description}
+Stock: ${__fmtStockDisplay(p.stock)}
+`,
         `• Unité: ${p.unit}`,
         `• Cash: ${p.price_cash} € | Crypto: ${p.price_crypto} €`,
         `• Médias: ${p.media?.length||0}`
